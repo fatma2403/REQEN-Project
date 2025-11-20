@@ -1,5 +1,4 @@
 Feature: View charging locations
-
   As a customer
   I want to see an overview of locations
   So that I can find and select available charging stations.
@@ -17,8 +16,15 @@ Feature: View charging locations
     When the customer opens the details of a location
     Then the system shows information about chargers and status at that location
 
-  Scenario: Filter locations by DC chargers
+  Scenario: Filter locations
     Given a customer exists
-    And there are several locations with AC and DC charging stations
-    When the customer filters for locations with DC chargers
-    Then the system shows only locations that have at least one DC charger
+    And there are several locations with different attributes
+    When the customer applies filter criteria to the location overview
+    Then the system shows only locations that match the selected criteria
+
+  Scenario: Reserve a charging station
+    Given a customer exists
+    And there is a location with at least one available charging station
+    And the customer is viewing the location details
+    When the customer reserves a charging station
+    Then the system blocks this charging station for the customer for a limited time
