@@ -5,7 +5,7 @@ Feature: Manage customer account
 
   Scenario: Register or log in
     Given a customer without an account
-    When the customer registers with valid data
+    When the customer registers with "2025-11-20"
     Then a new customer account is created
     And the customer is logged in
 
