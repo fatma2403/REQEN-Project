@@ -12,7 +12,7 @@ Feature: Manage locations
   Scenario: Edit location data
     Given a location exists with stored address and name
     When the operator changes the location data and saves the changes
-    Then the system stores the updated location data
+    Then the system stores the updated "AC"
 
   Scenario: Remove a location
     Given a location exists with charging stations
