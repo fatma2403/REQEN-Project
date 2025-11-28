@@ -4,21 +4,22 @@ Feature: Manage customer data
   So that I can review and update customer information.
 
   Scenario: Check customer account balance
-    Given a customer account with a balance exists
-    When the operator opens the balance information for this customer
-    Then the system shows the current account balance
+    Given a customer account exists for name "Martin Keller" with email "martin.keller@testmail.com" and a balance of "75.50"
+    When the operator opens the balance information for customer with email "martin.keller@testmail.com"
+    Then the system shows the current account balance "75.50" for customer with email "martin.keller@testmail.com"
 
   Scenario: Edit customer data
-    Given a customer exists with stored data
-    When the operator updates the customer data and saves the changes
+    Given a customer exists with stored data: name "Martin Keller" and email "martin.keller@testmail.com"
+    When the operator updates the customer email to "martin.keller.new@testmail.com" and saves the changes
     Then the system stores the updated customer data
+    And the customer data shows email "martin.keller.new@testmail.com"
 
   Scenario: View customer list
-    Given multiple customers exist
+    Given multiple customers exist:"Martin Keller" with email "martin.keller@testmail.com", "Laura Fischer" with email "laura.fischer@testmail.com", "Jonas Weber" with email "jonas.weber@testmail.com"
     When the operator opens the customer list
-    Then the system shows all customers in a list
+    Then the system shows all customers in a list including: "Martin Keller","Laura Fischer", "Jonas Weber"
 
   Scenario: Filter customer list
-    Given multiple customers exist
-    When the operator applies filter criteria to the customer list
-    Then the system shows only customers that match the filter criteria
+    Given multiple customers exist: "Martin Keller" with email "martin.keller@testmail.com", "Laura Fischer" with email "laura.fischer@testmail.com", "Jonas Weber" with email "jonas.weber@testmail.com"
+    When the operator applies the filter "Keller" to the customer list
+    Then the system shows only customers with name containing "Keller"
