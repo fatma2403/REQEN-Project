@@ -60,4 +60,11 @@ public class Kundenkonto {
 
     public void guthabenAufladen(double betrag) {
     }
+
+    public void setKunde(Kunde kunde) {
+    }
+
+    public Benutzer getKunde() {
+        return null;
+    }
 }

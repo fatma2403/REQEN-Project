@@ -4,16 +4,17 @@ Feature: End charging session
   So that the charging is safely completed and billed.
 
   Scenario: Unplug the charging cable
-    Given an ongoing charging session
-    When the customer unplugs the charging cable
-    Then the system stops the charging session
+    Given an ongoing charging session "5001" for customer "Martin Keller" with customer ID "CUST-1023" at charging station "11" started at "2025-11-20T10:00"
+    When the customer unplugs the charging cable at "2025-11-20T10:30"
+    Then the system stops the charging session "5001" and records the end time "2025-11-20T10:30"
 
   Scenario: Automatic billing after charging
-    Given a finished charging session with measured energy
-    When the system calculates the cost based on the tariffs
-    Then the system creates a billing record for the customer account
+    Given a finished charging session "5001" for customer "Martin Keller" with customer ID "CUST-1023" from "2025-11-20T10:00" to "2025-11-20T10:30" with measured energy "24.0" kWh
+    And a pricing rule exists for location "City Center" with charging mode "DC", price per kWh "0.45" and price per minute "0.10" valid from "2025-11-01T00:00"
+    When the system calculates the cost for session "5001" based on the tariffs
+    Then the system creates a billing record for customer ID "CUST-1023" with total amount "13.80"
 
   Scenario: Customer receives an invoice
-    Given the system has created a billing record for the session
-    When the invoice is generated
-    Then the customer can view the invoice for the charging session
+    Given the system has created a billing record for session "5001" with invoice number "1001" and total amount "13.80" for customer ID "CUST-1023"
+    When the invoice "1001" is generated
+    Then the customer "Martin Keller" can view invoice "1001" with total amount "13.80" for charging session "5001"

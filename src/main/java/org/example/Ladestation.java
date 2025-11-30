@@ -46,4 +46,11 @@ public class Ladestation {
     public boolean isAc() {
         return lademodus == Lademodus.AC;
     }
+
+    public int getId() {
+        return 0;
+    }
+
+    public void setId(int i) {
+    }
 }
