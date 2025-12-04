@@ -74,7 +74,7 @@ public class OperatorDashboardSteps {
         String toDate;
     }
 
-    // --- Zustand für alle Szenarien ---
+
 
     private Operator operator;
     private final List<Location> locations = new ArrayList<>();
@@ -89,9 +89,7 @@ public class OperatorDashboardSteps {
     private String errorLocationName;
     private String errorStationId;
 
-    // --------------------------------------------------------------------
-    // Scenario: Monitor locations in real time
-    // --------------------------------------------------------------------
+   
 
     @Given("an operator with id {string}, name {string} and email {string} is logged into the dashboard")
     public void an_operator_with_id_op01_is_logged_into_the_dashboard(String id, String name, String email) {
@@ -162,10 +160,7 @@ public class OperatorDashboardSteps {
         assertTrue(has20, "Station " + st20 + " should be present");
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: View location data in the dashboard
-    // --------------------------------------------------------------------
-
+  
     @Given("an operator with id {string}, name {string} and email {string} is viewing the dashboard")
     public void an_operator_with_id_op01_is_viewing_the_dashboard(String id, String name, String email) {
         operator = new Operator();
@@ -264,9 +259,7 @@ public class OperatorDashboardSteps {
         assertEquals("IN_BETRIEB_BESETZT", st11.status);
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: Customize dashboard
-    // --------------------------------------------------------------------
+   
 
     @Given("an operator with id {string}, name {string} and email {string} is viewing the dashboard with layout {string}")
     public void an_operator_viewing_dashboard_with_layout_standard(
@@ -296,9 +289,6 @@ public class OperatorDashboardSteps {
         assertEquals(expectedLayout, operator.layout);
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: Create reports from dashboard data
-    // --------------------------------------------------------------------
 
     @Given("charging sessions exist for reporting: session {string} from {string} to {string} with energy {string} kWh at station {string} and session {string} from {string} to {string} with energy {string} kWh at station {string}")
     public void charging_sessions_exist_for_reporting_session_from_to_with_energy_k_wh_at_station_and_session_from_to_with_energy_k_wh_at_station(
@@ -355,9 +345,7 @@ public class OperatorDashboardSteps {
         assertEquals(sessionsCount, lastReport.numberOfSessions);
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: Receive error messages
-    // --------------------------------------------------------------------
+    
 
     @Given("charging stations are monitored by the system and the location {string} with id {string} has a charging station {string} \\(DC, IN_BETRIEB_FREI)")
     public void charging_stations_are_monitored_and_city_center_has_station_11(
@@ -395,3 +383,4 @@ public class OperatorDashboardSteps {
         assertEquals(expectedLocationName, errorLocationName);
     }
 }
+

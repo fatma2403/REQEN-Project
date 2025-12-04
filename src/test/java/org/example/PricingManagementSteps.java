@@ -132,3 +132,4 @@ public class PricingManagementSteps {
         assertEquals(13.80, calculatedPrice, 0.0001);
     }
 }
+

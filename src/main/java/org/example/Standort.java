@@ -37,4 +37,6 @@ public class Standort {
     public List<Ladestation> getLadestationen() {
         return ladestationen;
     }
+
+
 }

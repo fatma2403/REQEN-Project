@@ -1,5 +1,6 @@
 package org.example;
 
+
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
@@ -11,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ManagePaymentsSteps {
 
-    // --- einfache Modell-Klassen nur für die Tests in diesem Step-File ---
 
     private static class InvoiceEntry {
         String number;
@@ -43,7 +43,6 @@ public class ManagePaymentsSteps {
         }
     }
 
-    // --- Zustand für die Szenarien ---
 
     private String customerName;
     private String customerEmail;
@@ -53,10 +52,6 @@ public class ManagePaymentsSteps {
     private boolean invoiceOverviewOpened;
     private final List<ChargingSessionEntry> chargingSessions = new ArrayList<>();
     private boolean chargingHistoryOpened;
-
-    // --------------------------------------------------------------------
-    // Scenario: View invoices
-    // --------------------------------------------------------------------
 
     @Given("a logged-in customer with name {string}, email {string} and customer ID {string}")
     public void a_logged_in_customer_with_name_email_and_customer_id(
@@ -123,10 +118,7 @@ public class ManagePaymentsSteps {
         assertTrue(foundInv2, "Invoice " + expectedInv2 + " should be in the list");
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: View charging history
-    // --------------------------------------------------------------------
-
+    
     @Given("past charging sessions exist for this customer: session {string} from {string} to {string} with energy {string} kWh at location {string} and session {string} from {string} to {string} with energy {string} kWh at location {string}")
     public void past_charging_sessions_exist_for_this_customer_session_from_to_with_energy_k_wh_at_location_and_session_from_to_with_energy_k_wh_at_location(
             String session1Id,

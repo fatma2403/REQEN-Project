@@ -18,10 +18,6 @@ public class LocationManagementSteps {
     private List<Standort> aktiveStandorte = new ArrayList<>();
     private Ladestation unassignedStation;
 
-    // ------------------------------------------------------------
-    // Scenario: Change operating status of a charging station
-    // ------------------------------------------------------------
-
     @Given("a location with id {string}, name {string} and address {string} exists with a charging station with id {string}, mode {string} and status {string}")
     public void a_location_with_id_name_and_address_exists_with_a_charging_station_with_id_mode_and_status(
             String standortIdStr,
@@ -103,9 +99,7 @@ public class LocationManagementSteps {
                 "Stations with status " + status + " must not be available for new charging sessions");
     }
 
-    // ------------------------------------------------------------
-    // Scenario: Edit location data
-    // ------------------------------------------------------------
+    
 
     @Given("a location with id {string}, name {string} and address {string} exists")
     public void a_location_with_id_name_and_address_exists(
@@ -154,10 +148,6 @@ public class LocationManagementSteps {
         assertEquals(expectedAdresse, standort.getAdresse(), "Updated address not stored");
     }
 
-    // ------------------------------------------------------------
-    // Scenario: Remove a location
-    // ------------------------------------------------------------
-
     @Given("a location with id {string}, name {string} and address {string} exists with charging stations")
     public void a_location_with_id_name_and_address_exists_with_charging_stations(
             String standortIdStr,
@@ -197,9 +187,7 @@ public class LocationManagementSteps {
                 "Location with id " + id + " should not be in active locations anymore");
     }
 
-    // ------------------------------------------------------------
-    // Scenario: Assign a charging station to a location
-    // ------------------------------------------------------------
+   
 
     @Given("an unassigned charging station with id {string}, mode {string} and status {string} exists")
     public void an_unassigned_charging_station_with_id_mode_and_status_exists(
@@ -285,3 +273,4 @@ public class LocationManagementSteps {
                 "Charging station with id " + expectedStationId + " must be linked to location " + expectedStandortId);
     }
 }
+

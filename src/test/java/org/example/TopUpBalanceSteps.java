@@ -6,69 +6,85 @@ import io.cucumber.java.en.Then;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Step Definitions für top_up_balance.feature
- */
 public class TopUpBalanceSteps {
 
-    private Kundenkonto kundenkonto;
-    private double eingezahlterBetrag;
-    private String bevorzugteZahlungsmethode;
-    private boolean topUpErfolgreich;
+    private Kunde customer;
+    private Kundenkonto account;
+    private double startBalance;
+    private double topUpAmount;
+    private boolean topUpSuccessful;
 
-    // ---------- Szenario: Use the prepaid system ----------
+    // used for payment-method related steps
+    private PaymentMethod currentPaymentMethod;
+    private PaymentMethod preferredPaymentMethod;
+
+    // ----------------------------------------------------
+    // Scenario 1: Use the prepaid system
+    // ----------------------------------------------------
 
     @Given("a logged-in customer with name {string}, email {string} and a balance account with current balance {double} EUR")
     public void a_logged_in_customer_with_name_email_and_a_balance_account_with_current_balance_eur(
-            String name, String email, Double startGuthaben) {
-
-        kundenkonto = new Kundenkonto();
-        kundenkonto.setKunde(new Kunde(name, email, "Secure456!"));
-        kundenkonto.setGuthaben(startGuthaben);
+            String name,
+            String email,
+            Double balance
+    ) {
+        customer = new Kunde(name, email, "Secure456!");
+        account = new Kundenkonto(1, balance);
+        startBalance = balance;
     }
 
     @When("the customer selects the prepaid top-up option")
     public void the_customer_selects_the_prepaid_top_up_option() {
-        // nur Kontext
+        // context only
     }
 
     @When("the customer enters the amount {double} EUR")
-    public void the_customer_enters_the_amount_eur(Double betrag) {
-        eingezahlterBetrag = betrag;
+    public void the_customer_enters_the_amount_eur(Double amount) {
+        topUpAmount = amount;
+        // if no explicit method is chosen, assume CREDIT_CARD
+        currentPaymentMethod = PaymentMethod.CREDIT_CARD;
     }
 
     @When("the payment is confirmed")
     public void the_payment_is_confirmed() {
-        double neuesGuthaben = kundenkonto.aktuellesGuthaben() + eingezahlterBetrag;
-        kundenkonto.setGuthaben(neuesGuthaben);
-        topUpErfolgreich = true;
+        if (topUpAmount > 0) {
+            // new version with payment method
+            account.guthabenAufladen(topUpAmount, currentPaymentMethod);
+            topUpSuccessful = true;
+        } else {
+            topUpSuccessful = false;
+        }
     }
 
     @Then("the system increases the customer balance to {double} EUR")
     public void the_system_increases_the_customer_balance_to_eur(Double expectedBalance) {
-        assertTrue(topUpErfolgreich, "Top-Up sollte erfolgreich sein");
-        assertEquals(expectedBalance, kundenkonto.aktuellesGuthaben(), 0.0001);
+        assertTrue(topUpSuccessful, "Top-up should be successful");
+        assertEquals(expectedBalance, account.aktuellesGuthaben(), 0.0001);
     }
 
-    // ---------- Szenario: Set preferred payment method ----------
-    // Das Given "a logged-in customer with name ... and email ..." kommt aus StepDefinitions!
+    // ----------------------------------------------------
+    // Scenario 2: Set preferred payment method
+    // ----------------------------------------------------
 
     @When("the customer selects {string} as preferred payment method")
-    public void the_customer_selects_as_preferred_payment_method(String paymentMethod) {
-        bevorzugteZahlungsmethode = paymentMethod;
+    public void the_customer_selects_as_preferred_payment_method(String methodName) {
+        preferredPaymentMethod = PaymentMethod.valueOf(methodName);
     }
 
     @Then("the system stores {string} as the default payment method")
-    public void the_system_stores_as_the_default_payment_method(String expectedMethod) {
-        assertEquals(expectedMethod, bevorzugteZahlungsmethode);
+    public void the_system_stores_as_the_default_payment_method(String methodName) {
+        PaymentMethod expected = PaymentMethod.valueOf(methodName);
+        assertEquals(expected, preferredPaymentMethod,
+                "Preferred payment method should be stored as default");
     }
 
     @Then("future top-ups for {string} use {string} by default")
-    public void future_top_ups_for_use_by_default(String email, String expectedMethod) {
-        assertEquals(expectedMethod, bevorzugteZahlungsmethode);
-        // Optional: email prüfen, falls du es aus dem Kundenkonto auslesen möchtest
-        if (kundenkonto != null && kundenkonto.getKunde() != null) {
-            assertEquals(email, kundenkonto.getKunde().getEmail());
-        }
+    public void future_top_ups_for_use_by_default(String email, String methodName) {
+        // simulate a future top-up using the stored preferred method
+        PaymentMethod expected = PaymentMethod.valueOf(methodName);
+
+        // here we just assert that the stored preferred method is used as default
+        assertEquals(expected, preferredPaymentMethod,
+                "Future top-ups should use the stored default payment method");
     }
 }

@@ -43,3 +43,4 @@ Feature: View charging locations
     When the customer reserves charging station with LadestationID 1 for 15 minutes
     Then the system sets the charging station with LadestationID 1 as reserved for customer "martin.keller@testmail.com"
     And the station cannot be used by other customers during this time
+

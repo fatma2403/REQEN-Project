@@ -3,37 +3,64 @@ package org.example;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Ladevorgangsverwaltung {
 
-    private final List<Ladevorgang> ladevorgaenge = new ArrayList<>();
+    private List<Ladestation> ladestationen = new ArrayList<>();
 
-    public Ladevorgang ladevorgangStarten(Kunde kunde,
-                                          Ladestation ladestation,
-                                          LocalDateTime startzeit) {
-        Ladevorgang vorgang = new Ladevorgang();
-        vorgang.setKunde(kunde);
-        vorgang.setLadestation(ladestation);
-        vorgang.setStart(startzeit);
-        ladevorgaenge.add(vorgang);
-        return vorgang;
+    public Ladevorgangsverwaltung() {
     }
 
-    public void ladevorgangBeenden(Ladevorgang vorgang,
-                                   LocalDateTime endzeit,
-                                   double geladeneMengeKWh) {
-        vorgang.setEnde(endzeit);
-        vorgang.setGeladeneMengeKWh(geladeneMengeKWh);
+    public Ladevorgangsverwaltung(List<Ladestation> ladestationen) {
+        this.ladestationen = ladestationen;
     }
 
-    public List<Ladevorgang> ladehistorieFuerKunde(Kunde kunde) {
-        return ladevorgaenge.stream()
-                .filter(v -> v.getKunde() == kunde)
-                .collect(Collectors.toList());
+    public List<Ladestation> getLadestationen() {
+        return ladestationen;
     }
 
-    public List<Ladevorgang> alleLadevorgaenge() {
-        return new ArrayList<>(ladevorgaenge);
+    public void setLadestationen(List<Ladestation> ladestationen) {
+        this.ladestationen = ladestationen;
     }
+
+    // ------------------------------------------------------------
+    // 1. Hilfsmethode: Ladestation anhand ID finden
+    // ------------------------------------------------------------
+    public Ladestation findeLadestationNachId(int stationId) {
+        if (ladestationen == null) {
+            return null;
+        }
+        for (Ladestation station : ladestationen) {
+            if (station.getLadestationId() == stationId) {
+                return station;
+            }
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------
+    // 2. Neue Funktion: Reservierung über die Service-Schicht
+    // ------------------------------------------------------------
+    /**
+     * Reserviert eine Ladestation für einen Kunden in einem bestimmten Zeitfenster.
+     *
+     * @param stationId ID der Ladestation
+     * @param kunde     Kunde, der reservieren möchte
+     * @param start     Startzeit der Reservierung
+     * @param end       Endzeit der Reservierung
+     * @return true, wenn Reservierung erfolgreich war, sonst false
+     */
+    public boolean reserviereLadestation(int stationId,
+                                         Kunde kunde,
+                                         LocalDateTime start,
+                                         LocalDateTime end) {
+
+        Ladestation station = findeLadestationNachId(stationId);
+        if (station == null) {
+            return false; // Station existiert nicht
+        }
+
+        return station.reservieren(kunde, start, end);
+    }
+
 }

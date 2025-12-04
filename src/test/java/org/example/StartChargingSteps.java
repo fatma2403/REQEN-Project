@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class StartChargingSteps {
 
-    // --- einfache Modellklassen nur für die Tests ---
 
     static class Customer {
         String name;
@@ -37,7 +36,7 @@ public class StartChargingSteps {
         double energyKWh;
     }
 
-    // --- Zustand für die Szenarien ---
+
 
     private Customer currentCustomer;
     private ChargingStation currentStation;
@@ -49,10 +48,7 @@ public class StartChargingSteps {
     private String lastNotificationSessionId;
     private double lastNotificationEnergyKWh;
 
-    // --------------------------------------------------------------------
-    // Scenario: Confirm customer ID
-    // --------------------------------------------------------------------
-
+ 
     @Given("a charging station with id {string} at location {string} in mode {string} and status {string} is ready for use")
     public void a_charging_station_with_id_at_location_in_mode_and_status_is_ready_for_use(
             String stationId,
@@ -122,9 +118,6 @@ public class StartChargingSteps {
         currentSession.station = currentStation;
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: Select charging mode
-    // --------------------------------------------------------------------
 
     @Given("a validated customer {string} with customer ID {string} is at charging station with id {string} that supports charging modes {string} and {string}")
     public void a_validated_customer_with_customer_id_is_at_charging_station_with_id_that_supports_charging_modes_and(
@@ -181,10 +174,7 @@ public class StartChargingSteps {
         assertEquals(expectedMode, currentStation.configuredMode);
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: Start the charging session
-    // --------------------------------------------------------------------
-
+   
     @Given("a validated customer {string} with customer ID {string} is at charging station with id {string} configured with charging mode {string}")
     public void a_validated_customer_with_customer_id_is_at_charging_station_with_id_configured_with_charging_mode(
             String name,
@@ -242,9 +232,7 @@ public class StartChargingSteps {
         assertEquals(expectedStartTime, currentSession.startTime);
     }
 
-    // --------------------------------------------------------------------
-    // Scenario: Receive charging notifications
-    // --------------------------------------------------------------------
+  
 
     @Given("an ongoing charging session {string} for customer {string} at charging station {string} started at {string} with recorded energy {string} kWh")
     public void an_ongoing_charging_session_for_customer_at_charging_station_started_at_with_recorded_energy_k_wh(
@@ -314,3 +302,4 @@ public class StartChargingSteps {
         assertEquals(currentSession.energyKWh, lastNotificationEnergyKWh, 0.0001);
     }
 }
+

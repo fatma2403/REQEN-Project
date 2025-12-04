@@ -6,11 +6,18 @@ package org.example;
  * - guthaben    : double
  * - guthabenAbbuchen(betrag) : boolean
  * - aktuellesGuthaben()      : double
+ *
+ * Erweiterung:
+ * - lastPaymentMethod : PaymentMethod
+ * - guthabenAufladen(betrag, method) : void
  */
 public class Kundenkonto {
 
     private int kontonummer;
     private double guthaben;
+
+    // NEU: Zahlungsmethode des letzten Aufladens
+    private PaymentMethod lastPaymentMethod;
 
     public Kundenkonto() {
     }
@@ -36,6 +43,14 @@ public class Kundenkonto {
         this.guthaben = guthaben;
     }
 
+    public PaymentMethod getLastPaymentMethod() {
+        return lastPaymentMethod;
+    }
+
+    public void setLastPaymentMethod(PaymentMethod paymentMethod) {
+        this.lastPaymentMethod = paymentMethod;
+    }
+
     /**
      * Versucht den angegebenen Betrag vom Guthaben abzubuchen.
      * @return true, wenn genug Guthaben vorhanden war und abgebucht wurde.
@@ -58,13 +73,22 @@ public class Kundenkonto {
         return guthaben;
     }
 
+    /**
+     * Alte Version (ohne Zahlungsmethode) — bleibt für Kompatibilität bestehen.
+     */
     public void guthabenAufladen(double betrag) {
+        if (betrag > 0) {
+            this.guthaben += betrag;
+        }
     }
 
-    public void setKunde(Kunde kunde) {
-    }
-
-    public Benutzer getKunde() {
-        return null;
+    /**
+     * NEU: Aufladen MIT Zahlungsmethode
+     */
+    public void guthabenAufladen(double betrag, PaymentMethod method) {
+        if (betrag > 0) {
+            this.guthaben += betrag;
+            this.lastPaymentMethod = method;
+        }
     }
 }

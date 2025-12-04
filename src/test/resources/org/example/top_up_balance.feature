@@ -15,3 +15,4 @@ Feature: Top up balance
     When the customer selects "CREDIT_CARD" as preferred payment method
     Then the system stores "CREDIT_CARD" as the default payment method
     And future top-ups for "martin.keller@testmail.com" use "CREDIT_CARD" by default
+

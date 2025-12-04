@@ -14,3 +14,4 @@ Feature: Manage payments
     And past charging sessions exist for this customer: session "5001" from "2025-11-20T10:00" to "2025-11-20T10:30" with energy "24.0" kWh at location "City Center" and session "5002" from "2025-11-18T18:15" to "2025-11-18T18:45" with energy "18.0" kWh at location "Mall Parking"
     When the customer opens the charging history
     Then the system shows a list of charging sessions with main details including session "5001" with start "2025-11-20T10:00", end "2025-11-20T10:30", energy "24.0" kWh and location "City Center" and session "5002" with start "2025-11-18T18:15", end "2025-11-18T18:45", energy "18.0" kWh and location "Mall Parking"
+

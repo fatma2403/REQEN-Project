@@ -41,7 +41,7 @@ public class InvoiceManagementSteps {
     private List<TestInvoice> gefilterteRechnungen;
     private boolean exportErfolgreich;
 
-    // ---------- Szenario: Calculate cost of a charging session ----------
+    
 
     @Given("a completed charging session for customer \"Martin Keller\" with email \"martin.keller@testmail.com\" from \"2025-11-20T10:00\" to \"2025-11-20T10:30\" with energy \"24.0\" kWh at charging mode \"DC\"")
     public void a_completed_charging_session_for_martin_keller_with_concrete_values() {
@@ -67,7 +67,7 @@ public class InvoiceManagementSteps {
         assertEquals(13.80, berechneteKosten, 0.0001);
     }
 
-    // ---------- Szenario: Generate invoice entry ----------
+   
 
     @Given("the cost of a completed charging session for customer \"Martin Keller\" with email \"martin.keller@testmail.com\" is \"13.80\"")
     public void the_cost_of_a_completed_charging_session_is_13_80() {
@@ -93,7 +93,6 @@ public class InvoiceManagementSteps {
         assertEquals("martin.keller@testmail.com", aktuelleRechnung.kundenEmail);
     }
 
-    // ---------- Szenario: Check details of a charging session ----------
 
     @Given("an invoice with number \"1001\" exists for customer \"Martin Keller\" with email \"martin.keller@testmail.com\" and charging session from \"2025-11-20T10:00\" to \"2025-11-20T10:30\" with energy \"24.0\" kWh, price per kWh \"0.45\" and price per minute \"0.10\"")
     public void an_invoice_with_number_1001_exists_with_concrete_session_details() {
@@ -124,8 +123,6 @@ public class InvoiceManagementSteps {
         assertEquals(0.45, aktuelleRechnung.preisProKwh, 0.0001);
         assertEquals(0.10, aktuelleRechnung.preisProMinute, 0.0001);
     }
-
-    // ---------- Szenario: Filter invoices by period or customer ----------
 
     @Given("invoices exist in the system: invoice \"1001\" for customer email \"martin.keller@testmail.com\" with date \"2025-11-20\" and invoice \"1002\" for customer email \"laura.fischer@testmail.com\" with date \"2025-10-15\"")
     public void invoices_exist_in_the_system_with_two_entries() {
@@ -201,7 +198,7 @@ public class InvoiceManagementSteps {
         assertTrue(nums.contains("1002"));
     }
 
-    // ---------- Szenario: Export invoices ----------
+    
 
     @Given("a list of invoices \"1001\" and \"1002\" is displayed in the invoice overview")
     public void a_list_of_invoices_1001_and_1002_is_displayed() {

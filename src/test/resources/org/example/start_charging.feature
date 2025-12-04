@@ -26,3 +26,4 @@ Feature: Start charging session
     When the charging progress changes and the recorded energy for session "5001" is updated to "20.0" kWh
     Then the system updates the charging session data to energy "20.0" kWh
     And the updated charging session status for session "5001" is available to be shown to the customer
+

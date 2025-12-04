@@ -25,3 +25,4 @@ Feature: Manage pricing
     And a pricing rule for location "City Center" with charging mode "DC", price per kWh "0.45", price per minute "0.10" and valid from "2025-11-01T00:00" exists
     When the system calculates the price for the session at time "2025-11-20T10:30"
     Then the system uses the pricing rule with price per kWh "0.45" and price per minute "0.10" for location "City Center" and charging mode "DC" and calculates a total price of "13.80"
+

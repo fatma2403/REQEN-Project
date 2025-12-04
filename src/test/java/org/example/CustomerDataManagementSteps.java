@@ -10,9 +10,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Step Definitions für customer_data_management.feature
- */
+
 public class CustomerDataManagementSteps {
 
     private Kunde kunde;
@@ -22,9 +20,7 @@ public class CustomerDataManagementSteps {
     private List<Kunde> angezeigteKunden;
     private List<Kunde> gefilterteKunden;
 
-    // ------------------------------------------------------------
-    // Scenario: Check customer account balance
-    // ------------------------------------------------------------
+   
 
     @Given("a customer account exists for name {string} with email {string} and a balance of {string}")
     public void a_customer_account_exists_for_martin_keller_with_balance(String name, String email, String balanceStr) {
@@ -51,10 +47,6 @@ public class CustomerDataManagementSteps {
                 "Kontostand sollte dem erwarteten Wert entsprechen");
     }
 
-    // ------------------------------------------------------------
-    // Scenario: Edit customer data
-    // ------------------------------------------------------------
-
     @Given("a customer exists with stored data: name {string} and email {string}")
     public void a_customer_exists_with_stored_data_martin_keller(String name, String email) {
         kunde = new Kunde(name, email, "secret");
@@ -78,10 +70,6 @@ public class CustomerDataManagementSteps {
         assertEquals(expectedEmail, kunde.getEmail(),
                 "Die aktualisierte E-Mail-Adresse sollte angezeigt werden");
     }
-
-    // ------------------------------------------------------------
-    // Scenario: View customer list
-    // ------------------------------------------------------------
 
     // Variante ohne Leerzeichen nach dem Doppelpunkt (wie im Log)
     @Given("multiple customers exist:{string} with email {string}, {string} with email {string}, {string} with email {string}")
@@ -130,10 +118,7 @@ public class CustomerDataManagementSteps {
                 "Expected customer '" + name3 + "' not found in the list");
     }
 
-    // ------------------------------------------------------------
-    // Scenario: Filter customer list
-    // ------------------------------------------------------------
-
+    
     @When("the operator applies the filter {string} to the customer list")
     public void the_operator_applies_the_filter_keller_to_the_customer_list(String filter) {
         assertNotNull(kundenListe, "Kundenliste muss existieren");

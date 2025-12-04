@@ -31,3 +31,4 @@ Feature: Use operator dashboard
     When a fault with code "ERR-STS-11" occurs at charging station "11"
     Then the system shows an error message "Fault ERR-STS-11 at station 11" in the dashboard
     And the operator can see that station "11" at location "City Center" is affected
+
