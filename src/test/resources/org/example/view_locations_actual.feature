@@ -23,3 +23,10 @@ Feature: View charging locations
     When the customer filters for locations with DC chargers
     Then the system shows only locations that have at least one DC charger: "City Center" and "Highway Station"
 
+  Scenario: Customer opens details for an unknown location
+    Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
+    And locations exist: "City Center" at "Hauptstraße 1, 1010 Wien" with chargers (1 AC IN_BETRIEB_FREI, 2 DC IN_BETRIEB_BESETZT), "Mall Parking" at "Einkaufspark 5, 4020 Linz" with chargers (3 AC IN_BETRIEB_FREI), "Highway Station" at "Autobahn A1, Rastplatz West" with chargers (4 DC IN_BETRIEB_FREI)
+    When the customer opens the location overview
+    And the customer opens the details of an unknown location "Unknown Station"
+    Then the system rejects opening location details
+    And the system shows the error message for locations "Location Unknown Station was not found"

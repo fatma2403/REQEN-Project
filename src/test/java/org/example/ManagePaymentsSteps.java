@@ -1,6 +1,5 @@
 package org.example;
 
-
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
@@ -11,7 +10,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ManagePaymentsSteps {
-
 
     private static class InvoiceEntry {
         String number;
@@ -43,15 +41,18 @@ public class ManagePaymentsSteps {
         }
     }
 
-
     private String customerName;
     private String customerEmail;
     private String customerId;
 
     private final List<InvoiceEntry> invoiceList = new ArrayList<>();
     private boolean invoiceOverviewOpened;
+
     private final List<ChargingSessionEntry> chargingSessions = new ArrayList<>();
     private boolean chargingHistoryOpened;
+
+    // NEW: error handling for edge case
+    private String lastPaymentsErrorMessage;
 
     @Given("a logged-in customer with name {string}, email {string} and customer ID {string}")
     public void a_logged_in_customer_with_name_email_and_customer_id(
@@ -63,12 +64,20 @@ public class ManagePaymentsSteps {
         this.customerEmail = email;
         this.customerId = custId;
 
-        // einfache Sanity-Checks
+        // reset state
+        this.invoiceOverviewOpened = false;
+        this.chargingHistoryOpened = false;
+        this.lastPaymentsErrorMessage = null;
+
+        // Sanity-Checks (du kannst sie später entfernen, wenn du flexibler werden willst)
         assertEquals("Martin Keller", name);
         assertEquals("martin.keller@testmail.com", email);
         assertEquals("CUST-1023", custId);
     }
 
+    // ---------------------------------------------------------------------
+    // Scenario: View invoices (normal)
+    // ---------------------------------------------------------------------
     @Given("past invoices exist for this customer: invoice {string} dated {string} with total amount {string} and invoice {string} dated {string} with total amount {string}")
     public void past_invoices_exist_for_this_customer_invoice_dated_with_total_amount_and_invoice_dated_with_total_amount(
             String inv1Number,
@@ -92,10 +101,25 @@ public class ManagePaymentsSteps {
         assertEquals("9.50", inv2Amount);
     }
 
+    // ---------------------------------------------------------------------
+    // Edge Case: no invoices exist
+    // ---------------------------------------------------------------------
+    @Given("no past invoices exist for this customer")
+    public void no_past_invoices_exist_for_this_customer() {
+        invoiceList.clear();
+        lastPaymentsErrorMessage = null;
+    }
+
     @When("the customer opens the invoice overview")
     public void the_customer_opens_the_invoice_overview() {
-        // wir simulieren nur, dass die Übersicht geöffnet wurde
         invoiceOverviewOpened = true;
+
+        // Edge case behavior: set error if list empty
+        if (invoiceList.isEmpty()) {
+            lastPaymentsErrorMessage = "No invoices found for customer ID " + customerId;
+        } else {
+            lastPaymentsErrorMessage = null;
+        }
     }
 
     @Then("the system shows a list of invoices {string} and {string} for customer ID {string}")
@@ -118,7 +142,24 @@ public class ManagePaymentsSteps {
         assertTrue(foundInv2, "Invoice " + expectedInv2 + " should be in the list");
     }
 
-    
+    // NEW Then for edge case
+    @Then("the system shows no invoices for customer ID {string}")
+    public void the_system_shows_no_invoices_for_customer_id(String expectedCustomerId) {
+        assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
+        assertEquals(expectedCustomerId, this.customerId, "Customer ID should match");
+        assertTrue(invoiceList.isEmpty(), "Invoice list should be empty for this edge case");
+    }
+
+    // NEW Then for edge case (avoid duplicate generic step names)
+    @Then("the system shows the payments error message {string}")
+    public void the_system_shows_the_payments_error_message(String expectedMessage) {
+        assertNotNull(lastPaymentsErrorMessage, "Payments error message should be set");
+        assertEquals(expectedMessage, lastPaymentsErrorMessage);
+    }
+
+    // ---------------------------------------------------------------------
+    // Scenario: View charging history (normal)
+    // ---------------------------------------------------------------------
     @Given("past charging sessions exist for this customer: session {string} from {string} to {string} with energy {string} kWh at location {string} and session {string} from {string} to {string} with energy {string} kWh at location {string}")
     public void past_charging_sessions_exist_for_this_customer_session_from_to_with_energy_k_wh_at_location_and_session_from_to_with_energy_k_wh_at_location(
             String session1Id,

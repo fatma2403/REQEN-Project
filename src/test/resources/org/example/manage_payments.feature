@@ -15,3 +15,9 @@ Feature: Manage payments
     When the customer opens the charging history
     Then the system shows a list of charging sessions with main details including session "5001" with start "2025-11-20T10:00", end "2025-11-20T10:30", energy "24.0" kWh and location "City Center" and session "5002" with start "2025-11-18T18:15", end "2025-11-18T18:45", energy "18.0" kWh and location "Mall Parking"
 
+  Scenario: View invoices when no invoices exist
+    Given a logged-in customer with name "Martin Keller", email "martin.keller@testmail.com" and customer ID "CUST-1023"
+    And no past invoices exist for this customer
+    When the customer opens the invoice overview
+    Then the system shows no invoices for customer ID "CUST-1023"
+    And the system shows the payments error message "No invoices found for customer ID CUST-1023"

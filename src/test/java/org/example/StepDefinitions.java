@@ -26,6 +26,10 @@ public class StepDefinitions {
     private Ladestation reservierteLadestation;
     private boolean reservierungAktiv;
 
+    // Edge/Error Case state
+    private String lastErrorMessage;
+
+
     // ------------------------------------------------------------
     // Gemeinsame Given-Steps
     // ------------------------------------------------------------
@@ -89,7 +93,7 @@ public class StepDefinitions {
     }
 
     // ------------------------------------------------------------
-    // Daten aus Text-Scenario: example.feature (drei Standorte in einem Schritt)
+    // Daten aus Text-Scenario: view_locations_actual.feature (drei Standorte in einem Schritt)
     // ------------------------------------------------------------
 
     @Given("locations exist: {string} at {string} with chargers \\({int} AC IN_BETRIEB_FREI, {int} DC IN_BETRIEB_BESETZT), {string} at {string} with chargers \\({int} AC IN_BETRIEB_FREI), {string} at {string} with chargers \\({int} DC IN_BETRIEB_FREI)")
@@ -580,5 +584,41 @@ public class StepDefinitions {
                 reservierteLadestation.getBetriebszustand(),
                 "Station must not be available for other customers");
     }
+
+    // ------------------------------------------------------------
+// Edge case: Customer opens details for an unknown location
+// ------------------------------------------------------------
+
+    @When("the customer opens the details of an unknown location {string}")
+    public void the_customer_opens_the_details_of_an_unknown_location(String unknownLocationName) {
+        assertTrue(locationOverviewOpen, "Location overview should be open before opening details");
+        assertNotNull(sichtbareStandorte, "Visible locations must not be null");
+
+        ausgewaehlterStandort = sichtbareStandorte.stream()
+                .filter(s -> unknownLocationName.equals(s.getName()))
+                .findFirst()
+                .orElse(null);
+
+        if (ausgewaehlterStandort == null) {
+            locationDetailsOpen = false;
+            lastErrorMessage = "Location " + unknownLocationName + " was not found";
+        } else {
+            locationDetailsOpen = true;
+            lastErrorMessage = null;
+        }
+    }
+
+    @Then("the system rejects opening location details")
+    public void the_system_rejects_opening_location_details() {
+        assertFalse(locationDetailsOpen, "Location details should not be open for an unknown location");
+        assertNotNull(lastErrorMessage, "Error message should be set when rejecting");
+    }
+
+    @Then("the system shows the error message for locations {string}")
+    public void the_system_shows_the_error_message_for_locations(String expectedMessage) {
+        assertEquals(expectedMessage, lastErrorMessage);
+    }
+
+
 }
 

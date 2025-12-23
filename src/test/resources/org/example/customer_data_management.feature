@@ -23,3 +23,8 @@ Feature: Manage customer data
     Given multiple customers exist: "Martin Keller" with email "martin.keller@testmail.com", "Laura Fischer" with email "laura.fischer@testmail.com", "Jonas Weber" with email "jonas.weber@testmail.com"
     When the operator applies the filter "Keller" to the customer list
     Then the system shows only customers with name containing "Keller"
+
+  Scenario: Operator opens balance for an unknown customer email
+    Given multiple customers exist: "Martin Keller" with email "martin.keller@testmail.com", "Laura Fischer" with email "laura.fischer@testmail.com", "Jonas Weber" with email "jonas.weber@testmail.com"
+    When the operator opens the balance information for customer with email "unknown@testmail.com"
+    Then the system shows the error message "Customer with email unknown@testmail.com was not found"

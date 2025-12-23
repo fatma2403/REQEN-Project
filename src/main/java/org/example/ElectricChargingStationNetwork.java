@@ -22,6 +22,9 @@ public class ElectricChargingStationNetwork {
         demoPricingManagement();                      // arbeitet intern, braucht die Liste nicht
         demoReservationChargingAndBilling(standorte); // ergänzt City Center + Station 11
         demoOperatorDashboard(standorte);             // nutzt die vorhandenen Standorte
+        demoCustomerDataManagementEdgeCase();         // zeigt Betreiber edge case wenn er das Guthaben einer email sehen will, die es nicht gibt
+        demoViewLocationsEdgeCaseUnknownLocation();
+        demoViewInvoicesNoInvoices();
     }
 
     // =====================================================================
@@ -88,6 +91,44 @@ public class ElectricChargingStationNetwork {
         System.out.println("  Name:  " + aktualisierterKunde.getName());
         System.out.println("  Email: " + aktualisierterKunde.getEmail());
         System.out.println("  ID:    " + aktualisierterKunde.getKundenId());
+
+        // -----------------------------------------
+// Scenario: Invalid email during registration (edge case)
+// -----------------------------------------
+        System.out.println("\n-- Scenario: Invalid email during registration (edge case) --");
+
+        String invalidEmail = "martin.kellertestmail.com"; // missing @
+        System.out.println("Kunde versucht sich mit ungültiger Email zu registrieren: " + invalidEmail);
+
+        Kunde invalidCustomer = new Kunde("Martin Keller", invalidEmail, "Secure456!");
+        invalidCustomer.setKundenId(null);
+
+        boolean registrationRejected = false;
+        String errorMessage = null;
+
+        try {
+            // this should fail because email is invalid
+            kundenverwaltung.kundeRegistrieren(invalidCustomer);
+
+            // if we get here, it was NOT rejected -> mark as failure in demo output
+            registrationRejected = false;
+        } catch (IllegalArgumentException ex) {
+            registrationRejected = true;
+            errorMessage = ex.getMessage();
+        }
+
+// Output like the feature
+        System.out.println("System lehnt Registrierung ab? " + registrationRejected);
+
+        String expectedMessage = "The entered email is missing an @";
+        System.out.println("Fehlermeldung: " + errorMessage + " (erwartet: " + expectedMessage + ")");
+
+// Optional small safety check for the demo
+        if (!registrationRejected || errorMessage == null || !errorMessage.equals(expectedMessage)) {
+            System.out.println("⚠ Demo-Hinweis: Erwartetes Verhalten wurde NICHT exakt getroffen.");
+        } else {
+            System.out.println("Edge case erfolgreich abgefangen.");
+        }
 
         System.out.println("\n=== Ende Demo: Customer Account ===");
     }
@@ -597,6 +638,127 @@ public class ElectricChargingStationNetwork {
 
         System.out.println("\n=== Ende Demo: Operator Dashboard ===");
     }
+
+    private static void demoCustomerDataManagementEdgeCase() {
+        System.out.println();
+        System.out.println("=== Demo: Manage customer data (edge case) ===");
+
+        System.out.println("\n-- Scenario: Operator opens balance for an unknown customer email --");
+
+        // Setup: multiple customers exist
+        List<Kunde> kundenListe = new ArrayList<>();
+        kundenListe.add(new Kunde("Martin Keller", "martin.keller@testmail.com", "pw1"));
+        kundenListe.add(new Kunde("Laura Fischer", "laura.fischer@testmail.com", "pw2"));
+        kundenListe.add(new Kunde("Jonas Weber", "jonas.weber@testmail.com", "pw3"));
+
+        String emailToSearch = "unknown@testmail.com";
+
+        System.out.println("Operator öffnet Kontostand-Info für Email: " + emailToSearch);
+
+        Kunde found = kundenListe.stream()
+                .filter(k -> k.getEmail() != null && k.getEmail().equals(emailToSearch))
+                .findFirst()
+                .orElse(null);
+
+        if (found == null) {
+            String errorMessage = "Customer with email " + emailToSearch + " was not found";
+            System.out.println("System lehnt Anfrage ab.");
+            System.out.println("Fehlermeldung: " + errorMessage);
+        } else {
+            // (Not expected in this edge case)
+            Kundenkonto konto = new Kundenkonto();
+            konto.setGuthaben(75.50);
+            System.out.println("Kunde gefunden: " + found.getName());
+            System.out.println("Kontostand: " + konto.aktuellesGuthaben());
+        }
+
+        System.out.println("\n=== Ende Demo: Manage customer data (edge case) ===");
+    }
+
+    private static void demoViewLocationsEdgeCaseUnknownLocation() {
+        System.out.println("\n=== Demo: View charging locations (Edge Case) ===");
+
+        Kunde kunde = new Kunde("Martin Keller", "martin.keller@testmail.com", "secret");
+        kunde.setKundenId("CUST-1023");
+
+        List<Standort> standorte = new ArrayList<>();
+
+        Standort cityCenter = new Standort();
+        cityCenter.setStandortId(1);
+        cityCenter.setName("City Center");
+        cityCenter.setAdresse("Hauptstraße 1, 1010 Wien");
+        cityCenter.getLadestationen().add(new Ladestation(1, Lademodus.AC, Betriebszustand.IN_BETRIEB_FREI));
+        cityCenter.getLadestationen().add(new Ladestation(2, Lademodus.DC, Betriebszustand.IN_BETRIEB_BESETZT));
+
+        standorte.add(cityCenter);
+
+        System.out.println("-- Scenario: Customer opens details for an unknown location --");
+        String requested = "Unbekannter Standort";
+
+        Standort found = standorte.stream()
+                .filter(s -> requested.equals(s.getName()))
+                .findFirst()
+                .orElse(null);
+
+        if (found == null) {
+            System.out.println("ERROR: Standort " + requested + " wurde nicht gefunden");
+        } else {
+            System.out.println("Geöffneter Standort: " + found.getName());
+        }
+
+        System.out.println("=== End Demo: View charging locations (Edge Case) ===");
+    }
+
+    // =====================================================================
+// Demo: View invoices – Edge Case (keine Rechnungen vorhanden)
+// =====================================================================
+    private static void demoViewInvoicesNoInvoices() {
+
+        System.out.println();
+        System.out.println("=== Demo: View invoices (Edge Case – keine Rechnungen vorhanden) ===");
+
+        // ------------------------------------------------------------
+        // Setup: eingeloggter Kunde
+        // ------------------------------------------------------------
+        Kunde kunde = new Kunde("Martin Keller", "martin.keller@testmail.com", "Secure456!");
+        kunde.setKundenId("CUST-1023");
+
+        System.out.println("\n-- Kunde angemeldet --");
+        System.out.println("Name:       " + kunde.getName());
+        System.out.println("E-Mail:     " + kunde.getEmail());
+        System.out.println("Kunden-ID:  " + kunde.getKundenId());
+
+        // ------------------------------------------------------------
+        // Keine Rechnungen im System vorhanden
+        // ------------------------------------------------------------
+        List<Rechnung> rechnungen = new ArrayList<>();
+
+        System.out.println("\n-- Systemstatus --");
+        System.out.println("Für diesen Kunden sind aktuell keine Rechnungen gespeichert.");
+
+        // ------------------------------------------------------------
+        // Kunde öffnet Rechnungsübersicht
+        // ------------------------------------------------------------
+        System.out.println("\n-- Aktion --");
+        System.out.println("Kunde öffnet die Rechnungsübersicht …");
+
+        if (rechnungen.isEmpty()) {
+            System.out.println("\n-- Ergebnis --");
+            System.out.println("⚠ Keine Rechnungen gefunden für Kunden-ID " + kunde.getKundenId());
+            System.out.println("Bitte führen Sie zuerst einen Ladevorgang durch, um Rechnungen zu erzeugen.");
+        } else {
+            System.out.println("\n-- Rechnungen --");
+            for (Rechnung r : rechnungen) {
+                System.out.println("Rechnung " + r.getRechnungsNr()
+                        + " | Datum: " + r.getRechnungsDatum()
+                        + " | Betrag: " + String.format("%.2f EUR", r.getGesamtBetrag()));
+            }
+        }
+
+        System.out.println("\n=== Ende Demo: View invoices (Edge Case) ===");
+    }
+
+
 }
 
 

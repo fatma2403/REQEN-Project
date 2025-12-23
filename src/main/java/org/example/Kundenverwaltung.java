@@ -14,6 +14,11 @@ public class Kundenverwaltung {
         if (kunde == null) {
             throw new IllegalArgumentException("kunde darf nicht null sein");
         }
+        String email = kunde.getEmail();
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            throw new IllegalArgumentException("The entered email is missing an @");
+        }
+
         if (kunde.getKundenId() == null) {
             // zur Not eine einfache ID vergeben, wenn noch keine da ist
             kunde.setKundenId(UUID.randomUUID().toString());
