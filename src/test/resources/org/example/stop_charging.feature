@@ -8,6 +8,18 @@ Feature: End charging session
     When the customer unplugs the charging cable at "2025-11-20T10:30"
     Then the system stops the charging session "5001" and records the end time "2025-11-20T10:30"
 
+  Scenario: Unplug fails when session is unknown
+    Given an ongoing charging session "5001" for customer "Martin Keller" with customer ID "CUST-1023" at charging station "11" started at "2025-11-20T10:00"
+    When the customer unplugs the charging cable for session "UNKNOWN" at "2025-11-20T10:30"
+    Then the system rejects stopping session "UNKNOWN"
+    And the system shows a stop charging error message
+
+  Scenario: Unplug is ignored when charging session is already finished
+    Given a finished charging session "5001" for customer "Martin Keller" with customer ID "CUST-1023" ended at "2025-11-20T10:30"
+    When the customer unplugs the charging cable again
+    Then the system keeps the charging session "5001" unchanged
+    And the system shows a charging session already finished message
+
   Scenario: Automatic billing after charging
     Given a finished charging session "5001" for customer "Martin Keller" with customer ID "CUST-1023" from "2025-11-20T10:00" to "2025-11-20T10:30" with measured energy "24.0" kWh
     And a pricing rule exists for location "City Center" with charging mode "DC", price per kWh "0.45" and price per minute "0.10" valid from "2025-11-01T00:00"
