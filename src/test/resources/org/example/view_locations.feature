@@ -6,11 +6,11 @@ Feature: View charging locations
   Scenario: View location overview
     Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
     And the following locations with charging stations exist:
-      | Standort        | Adresse                          | LadestationID | Modus | Status              |
-      | City Center     | Hauptstraße 1, 1010 Wien       | 1             | AC    | IN_BETRIEB_FREI     |
-      | City Center     | Hauptstraße 1, 1010 Wien       | 2             | DC    | IN_BETRIEB_BESETZT  |
-      | Mall Parking    | Einkaufspark 5, 4020 Linz      | 3             | AC    | IN_BETRIEB_FREI     |
-      | Highway Station | Autobahn A1, Rastplatz West    | 4             | DC    | IN_BETRIEB_FREI     |
+      | Standort        | Adresse                       | LadestationID | Modus | Status              |
+      | City Center     | Hauptstraße 1, 1010 Wien      | 1             | AC    | IN_BETRIEB_FREI     |
+      | City Center     | Hauptstraße 1, 1010 Wien      | 2             | DC    | IN_BETRIEB_BESETZT  |
+      | Mall Parking    | Einkaufspark 5, 4020 Linz     | 3             | AC    | IN_BETRIEB_FREI     |
+      | Highway Station | Autobahn A1, Rastplatz West   | 4             | DC    | IN_BETRIEB_FREI     |
     When the customer opens the location overview
     Then the system shows a list of available locations including "City Center", "Mall Parking" and "Highway Station"
 
@@ -29,12 +29,25 @@ Feature: View charging locations
   Scenario: Filter locations
     Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
     And the following locations with charging stations exist:
-      | Standort        | Adresse                          | LadestationID | Modus | Status           |
-      | City Center     | Hauptstraße 1, 1010 Wien       | 1             | AC    | IN_BETRIEB_FREI  |
-      | Mall Parking    | Einkaufspark 5, 4020 Linz      | 3             | AC    | IN_BETRIEB_FREI  |
-      | Highway Station | Autobahn A1, Rastplatz West    | 4             | DC    | IN_BETRIEB_FREI  |
+      | Standort        | Adresse                       | LadestationID | Modus | Status           |
+      | City Center     | Hauptstraße 1, 1010 Wien      | 1             | AC    | IN_BETRIEB_FREI  |
+      | Mall Parking    | Einkaufspark 5, 4020 Linz     | 3             | AC    | IN_BETRIEB_FREI  |
+      | Highway Station | Autobahn A1, Rastplatz West   | 4             | DC    | IN_BETRIEB_FREI  |
     When the customer filters locations by charging mode "DC"
     Then the system shows only locations including "Highway Station"
+
+  # ==========================================================
+  # NEU: ERROR CASE
+  # ==========================================================
+  Scenario: Filter locations shows empty result when no station matches the mode
+    Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
+    And the following locations with charging stations exist:
+      | Standort     | Adresse                    | LadestationID | Modus | Status          |
+      | City Center  | Hauptstraße 1, 1010 Wien   | 1             | AC    | IN_BETRIEB_FREI |
+      | Mall Parking | Einkaufspark 5, 4020 Linz  | 3             | AC    | IN_BETRIEB_FREI |
+    When the customer filters locations by charging mode "DC"
+    Then the system shows no locations
+    And the system shows a no matching locations message
 
   Scenario: Reserve a charging station
     Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
@@ -44,3 +57,13 @@ Feature: View charging locations
     Then the system sets the charging station with LadestationID 1 as reserved for customer "martin.keller@testmail.com"
     And the station cannot be used by other customers during this time
 
+  # ==========================================================
+  # NEU: EDGE CASE
+  # ==========================================================
+  Scenario: Reserve fails when charging station is already reserved by another customer
+    Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
+    And location "City Center" has a charging station with LadestationID 1 reserved for another customer
+    And the customer is viewing the location details of "City Center"
+    When the customer reserves charging station with LadestationID 1 for 15 minutes
+    Then the system rejects the reservation for charging station with LadestationID 1
+    And the system shows a station already reserved message
