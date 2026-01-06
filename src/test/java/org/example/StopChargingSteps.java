@@ -8,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class StopChargingSteps {
 
-   
+    // --- einfache Modellklassen nur für die Tests ---
+
     static class Customer {
         String name;
         String customerId;
@@ -52,7 +53,7 @@ public class StopChargingSteps {
         boolean generated;
     }
 
- 
+    // --- Zustand über die Szenarien hinweg ---
 
     private Customer currentCustomer;
     private ChargingStation currentStation;
@@ -61,6 +62,9 @@ public class StopChargingSteps {
     private BillingRecord currentBillingRecord;
     private Invoice currentInvoice;
 
+    // --------------------------------------------------------------------
+    // Scenario: Unplug the charging cable
+    // --------------------------------------------------------------------
 
     @Given("an ongoing charging session {string} for customer {string} with customer ID {string} at charging station {string} started at {string}")
     public void an_ongoing_charging_session_for_customer_with_customer_id_at_charging_station_started_at(
@@ -115,6 +119,9 @@ public class StopChargingSteps {
         assertFalse(currentStation.sessionRunning, "Station should no longer have a running session");
     }
 
+    // --------------------------------------------------------------------
+    // Scenario: Automatic billing after charging
+    // --------------------------------------------------------------------
 
     @Given("a finished charging session {string} for customer {string} with customer ID {string} from {string} to {string} with measured energy {string} kWh")
     public void a_finished_charging_session_for_customer_with_customer_id_from_to_with_measured_energy_k_wh(
@@ -201,7 +208,9 @@ public class StopChargingSteps {
         assertEquals(expected, currentBillingRecord.totalAmount, 0.01);
     }
 
-
+    // --------------------------------------------------------------------
+    // Scenario: Customer receives an invoice
+    // --------------------------------------------------------------------
 
     @Given("the system has created a billing record for session {string} with invoice number {string} and total amount {string} for customer ID {string}")
     public void the_system_has_created_a_billing_record_for_session_with_invoice_number_and_total_amount_for_customer_id(
@@ -267,4 +276,3 @@ public class StopChargingSteps {
         assertEquals(expectedTotal, currentInvoice.totalAmount, 0.01);
     }
 }
-
