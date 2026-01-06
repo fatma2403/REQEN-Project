@@ -10,10 +10,25 @@ Feature: Start charging session
     Then the system validates that customer ID "CUST-1023" exists
     And the system links the new charging session to the customer account with customer ID "CUST-1023"
 
+  Scenario: Confirm customer ID fails for unknown customer ID
+    Given a charging station with id "11" at location "City Center" in mode "DC" and status "IN_BETRIEB_FREI" is ready for use
+    And a customer with name "Martin Keller", email "martin.keller@testmail.com" and customer ID "CUST-1023" is identified at the station
+    When the customer enters customer ID "UNKNOWN" at the charging station
+    Then the system rejects customer ID "UNKNOWN"
+    And the system does not create a new charging session
+    And the system shows a customer ID error message
+
   Scenario: Select charging mode
     Given a validated customer "Martin Keller" with customer ID "CUST-1023" is at charging station with id "11" that supports charging modes "AC" and "DC"
     When the customer selects charging mode "DC"
     Then the system configures charging station "11" with charging mode "DC"
+
+  Scenario: Select charging mode fails if mode is not supported
+    Given a validated customer "Martin Keller" with customer ID "CUST-1023" is at charging station with id "11" that supports charging modes "AC" and "DC"
+    When the customer selects charging mode "FAST"
+    Then the system rejects charging mode "FAST"
+    And the charging station "11" remains unconfigured
+    And the system shows a charging mode error message
 
   Scenario: Start the charging session
     Given a validated customer "Martin Keller" with customer ID "CUST-1023" is at charging station with id "11" configured with charging mode "DC"
@@ -26,4 +41,3 @@ Feature: Start charging session
     When the charging progress changes and the recorded energy for session "5001" is updated to "20.0" kWh
     Then the system updates the charging session data to energy "20.0" kWh
     And the updated charging session status for session "5001" is available to be shown to the customer
-
