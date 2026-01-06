@@ -1,31 +1,36 @@
 package org.example;
 
-import org.example.Kunde;
-import org.example.Kundenkonto;
-import org.example.PaymentMethod;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDateTime;
-import java.time.Duration;
 
 public class ElectricChargingStationNetwork {
 
     public static void main(String[] args) {
+        System.out.println("Filling Station Network demo läuft...");
 
+        // Bestehende Demos (Happy Paths)
         demoCustomerAccount();
         demoTopUpBalance();
+
+        // NEU/Erweitert: Error/Edge Demos (wie von dir gewünscht)
+        demoManagePaymentsErrorCases();
+        demoStartChargingErrorCases();
+        demoStopChargingErrorEdgeCases();
 
         // Gemeinsame System-Standortliste, die von mehreren Demos benutzt wird
         List<Standort> standorte = new ArrayList<>();
 
-        demoManageLocations(standorte);               // füllt standorte mit City Center, Mall Parking, Highway etc.
-        demoPricingManagement();                      // arbeitet intern, braucht die Liste nicht
-        demoReservationChargingAndBilling(standorte); // ergänzt City Center + Station 11
-        demoOperatorDashboard(standorte);             // nutzt die vorhandenen Standorte
+        demoManageLocations(standorte);
+        demoViewLocationsErrorEdgeCases();     // NEU: View Locations Error + Edge
+        demoPricingManagement();
+        demoReservationChargingAndBilling(standorte);
+        demoOperatorDashboard(standorte);
     }
 
     // =====================================================================
-    // Customer Account
+    // Customer Account (bestehend)
     // =====================================================================
     private static void demoCustomerAccount() {
         System.out.println("=== Demo: Customer Account ===");
@@ -93,7 +98,7 @@ public class ElectricChargingStationNetwork {
     }
 
     // =====================================================================
-    // Top up balance
+    // Top up balance (bestehend)
     // =====================================================================
     private static void demoTopUpBalance() {
         System.out.println();
@@ -145,7 +150,141 @@ public class ElectricChargingStationNetwork {
     }
 
     // =====================================================================
-    // Manage locations – verwendet gemeinsame standorte-Liste
+    // Manage payments – Error/Edge Demo (NEU)
+    // =====================================================================
+    private static void demoManagePaymentsErrorCases() {
+        System.out.println();
+        System.out.println("=== Demo: Manage payments (Error/Edge cases) ===");
+
+        // Edge: keine Rechnungen vorhanden
+        System.out.println("\n-- Scenario: View invoices shows empty state when no invoices exist --");
+
+        String customerName = "Martin Keller";
+        String customerEmail = "martin.keller@testmail.com";
+        String customerId = "CUST-1023";
+
+        System.out.println("Kunde: " + customerName + " (" + customerEmail + "), ID: " + customerId);
+        System.out.println("Kunde öffnet die Rechnungsübersicht ...");
+
+        List<String> invoices = new ArrayList<>();
+        if (invoices.isEmpty()) {
+            System.out.println("Keine Rechnungen gefunden für Kunden-ID " + customerId + ".");
+            System.out.println("Hinweis: Empty State (NO_INVOICES).");
+        } else {
+            System.out.println("Rechnungen: " + invoices);
+        }
+
+        // Error: unbekannte Customer ID
+        System.out.println("\n-- Scenario: View invoices fails for unknown customer ID --");
+
+        String unknownCustomerId = "UNKNOWN";
+        System.out.println("Kunde: " + customerName + " (" + customerEmail + "), ID: " + unknownCustomerId);
+        System.out.println("Kunde öffnet die Rechnungsübersicht ...");
+
+        if ("UNKNOWN".equalsIgnoreCase(unknownCustomerId)) {
+            System.out.println("FEHLER: Zugriff auf Rechnungen nicht möglich (INVOICE_ACCESS_ERROR).");
+        } else {
+            System.out.println("Rechnungsübersicht wurde erfolgreich geladen.");
+        }
+
+        System.out.println("\n=== Ende Demo: Manage payments (Error/Edge cases) ===");
+    }
+
+    // =====================================================================
+    // Start charging – Error/Edge Demo (NEU)
+    // =====================================================================
+    private static void demoStartChargingErrorCases() {
+        System.out.println();
+        System.out.println("=== Demo: Start charging (Error/Edge cases) ===");
+
+        // Error: falsche Customer-ID
+        System.out.println("\n-- Scenario: Confirm customer ID fails for unknown customer ID --");
+
+        String stationId = "11";
+        String location = "City Center";
+        String stationStatus = "IN_BETRIEB_FREI";
+        String stationMode = "DC";
+
+        System.out.println("Ladestation bereit:");
+        System.out.println("  ID: " + stationId + " | Standort: " + location + " | Modus: " + stationMode + " | Status: " + stationStatus);
+
+        String knownCustomerId = "CUST-1023";
+        String enteredCustomerId = "UNKNOWN";
+
+        System.out.println("Kunde identifiziert (erwartete ID): " + knownCustomerId);
+        System.out.println("Kunde gibt ID ein: " + enteredCustomerId);
+
+        boolean idValid = enteredCustomerId.equals(knownCustomerId);
+
+        if (!idValid) {
+            System.out.println("FEHLER: Customer ID wurde abgelehnt (CUSTOMER_ID_ERROR).");
+            System.out.println("Keine neue Ladesession wurde erstellt.");
+        } else {
+            System.out.println("Customer ID validiert – Session kann erstellt werden.");
+        }
+
+        // Error: nicht unterstützter Modus
+        System.out.println("\n-- Scenario: Select charging mode fails if mode is not supported --");
+
+        String supported1 = "AC";
+        String supported2 = "DC";
+        String selected = "FAST";
+
+        System.out.println("Station " + stationId + " unterstützt Modi: " + supported1 + ", " + supported2);
+        System.out.println("Kunde wählt Modus: " + selected);
+
+        boolean supported = selected.equals(supported1) || selected.equals(supported2);
+
+        if (!supported) {
+            System.out.println("FEHLER: Modus '" + selected + "' wird nicht unterstützt (CHARGING_MODE_ERROR).");
+            System.out.println("Station bleibt unkonfiguriert.");
+        } else {
+            System.out.println("Modus akzeptiert – Station wird konfiguriert: " + selected);
+        }
+
+        System.out.println("\n=== Ende Demo: Start charging (Error/Edge cases) ===");
+    }
+
+    // =====================================================================
+    // Stop charging – 1 Error + 1 Edge (NEU)
+    // =====================================================================
+    private static void demoStopChargingErrorEdgeCases() {
+        System.out.println();
+        System.out.println("=== Demo: Stop charging (Error/Edge cases) ===");
+
+        // Error Case: Session unbekannt
+        System.out.println("\n-- Scenario: Unplug fails when session is unknown --");
+
+        String knownSessionId = "5001";
+        String requestedStopSessionId = "UNKNOWN";
+        String unplugTime = "2025-11-20T10:30";
+
+        System.out.println("Ongoing Session vorhanden: " + knownSessionId);
+        System.out.println("Kunde versucht zu stoppen: " + requestedStopSessionId + " um " + unplugTime);
+
+        if (!requestedStopSessionId.equals(knownSessionId)) {
+            System.out.println("FEHLER: Stoppen nicht möglich – Session '" + requestedStopSessionId + "' unbekannt (STOP_CHARGING_ERROR).");
+        } else {
+            System.out.println("Session wurde gestoppt.");
+        }
+
+        // Edge Case: Schon beendet -> ignorieren
+        System.out.println("\n-- Scenario: Unplug is ignored when charging session is already finished --");
+
+        String finishedSessionId = "5001";
+        String finishedAt = "2025-11-20T10:30";
+
+        System.out.println("Session " + finishedSessionId + " ist bereits beendet um: " + finishedAt);
+        System.out.println("Kunde zieht den Stecker erneut ...");
+
+        System.out.println("Hinweis: Session bleibt unverändert (CHARGING_SESSION_ALREADY_FINISHED).");
+        System.out.println("Endzeit bleibt: " + finishedAt);
+
+        System.out.println("\n=== Ende Demo: Stop charging (Error/Edge cases) ===");
+    }
+
+    // =====================================================================
+    // Manage locations – verwendet gemeinsame standorte-Liste (bestehend)
     // =====================================================================
     private static void demoManageLocations(List<Standort> standorte) {
         System.out.println();
@@ -242,7 +381,74 @@ public class ElectricChargingStationNetwork {
     }
 
     // =====================================================================
-    // Manage pricing (arbeitet für sich)
+    // View locations – Error + Edge (NEU)
+    // =====================================================================
+    private static void demoViewLocationsErrorEdgeCases() {
+        System.out.println();
+        System.out.println("=== Demo: View locations (Error/Edge cases) ===");
+
+        // Error: Filter -> keine Treffer
+        System.out.println("\n-- Scenario: Filter locations shows empty result when no station matches the mode --");
+
+        List<Standort> standorte = new ArrayList<>();
+
+        Standort city = new Standort();
+        city.setStandortId(1);
+        city.setName("City Center");
+        city.setAdresse("Hauptstraße 1, 1010 Wien");
+        city.getLadestationen().add(new Ladestation(1, Lademodus.AC, Betriebszustand.IN_BETRIEB_FREI));
+
+        Standort mall = new Standort();
+        mall.setStandortId(2);
+        mall.setName("Mall Parking");
+        mall.setAdresse("Einkaufspark 5, 4020 Linz");
+        mall.getLadestationen().add(new Ladestation(3, Lademodus.AC, Betriebszustand.IN_BETRIEB_FREI));
+
+        standorte.add(city);
+        standorte.add(mall);
+
+        System.out.println("Vor Filter (Standorte): " + standorte.stream().map(Standort::getName).toList());
+        System.out.println("Kunde filtert nach Modus: DC");
+
+        List<Standort> filtered = standorte.stream()
+                .filter(s -> s.getLadestationen().stream().anyMatch(l -> l.getLademodus() == Lademodus.DC))
+                .toList();
+
+        if (filtered.isEmpty()) {
+            System.out.println("Keine Standorte gefunden.");
+            System.out.println("Hinweis: NO_MATCHING_LOCATIONS");
+        } else {
+            System.out.println("Gefundene Standorte: " + filtered.stream().map(Standort::getName).toList());
+        }
+
+        // Edge: Station bereits reserviert
+        System.out.println("\n-- Scenario: Reserve fails when charging station is already reserved by another customer --");
+
+        Standort city2 = new Standort();
+        city2.setStandortId(3);
+        city2.setName("City Center");
+        city2.setAdresse("Hauptstraße 1, 1010 Wien");
+
+        Ladestation station1 = new Ladestation(1, Lademodus.AC, Betriebszustand.IN_BETRIEB_BESETZT); // schon reserviert
+        city2.getLadestationen().add(station1);
+
+        System.out.println("Standort: " + city2.getName());
+        System.out.println("Station 1 Status: " + station1.getBetriebszustand());
+        System.out.println("Kunde versucht Station 1 für 15 Minuten zu reservieren ...");
+
+        if (station1.getBetriebszustand() != Betriebszustand.IN_BETRIEB_FREI) {
+            System.out.println("Reservierung abgelehnt.");
+            System.out.println("Hinweis: STATION_ALREADY_RESERVED");
+        } else {
+            station1.setBetriebszustand(Betriebszustand.IN_BETRIEB_BESETZT);
+            System.out.println("Reservierung erfolgreich.");
+        }
+
+        System.out.println("\n=== Ende Demo: View locations (Error/Edge cases) ===");
+    }
+
+    // =====================================================================
+    // Manage pricing (bestehend)
     // =====================================================================
     private static void demoPricingManagement() {
         System.out.println("=== Demo: Manage pricing ===");
@@ -382,7 +588,7 @@ public class ElectricChargingStationNetwork {
     }
 
     // =====================================================================
-    // Reservation, Charging & Billing – fügt City Center + Station 11 ein
+    // Reservation, Charging & Billing (bestehend) – nutzt standorte
     // =====================================================================
     private static void demoReservationChargingAndBilling(List<Standort> standorte) {
         System.out.println("=== Demo: Reservation, Charging & Billing ===");
@@ -420,7 +626,7 @@ public class ElectricChargingStationNetwork {
                 new Ladevorgangsverwaltung(List.of(dcStation));
 
         LocalDateTime reservStart = LocalDateTime.of(2025, 11, 20, 9, 50);
-        LocalDateTime reservEnd   = LocalDateTime.of(2025, 11, 20, 10, 30);
+        LocalDateTime reservEnd = LocalDateTime.of(2025, 11, 20, 10, 30);
 
         boolean reservationOk = verwaltung.reserviereLadestation(
                 11,
@@ -440,7 +646,7 @@ public class ElectricChargingStationNetwork {
         vorgang.setLadestation(dcStation);
 
         LocalDateTime ladeStart = LocalDateTime.parse("2025-11-20T10:00");
-        LocalDateTime ladeEnde  = LocalDateTime.parse("2025-11-20T10:30");
+        LocalDateTime ladeEnde = LocalDateTime.parse("2025-11-20T10:30");
         vorgang.setStart(ladeStart);
         vorgang.setEnde(ladeEnde);
         vorgang.setGeladeneMengeKWh(24.0);
@@ -476,7 +682,7 @@ public class ElectricChargingStationNetwork {
 
         Preisregel regelZurAbrechnung = null;
         for (Preisregel regel : alleRegeln) {
-            boolean modusPasst   = regel.getLademodus() == Lademodus.DC;
+            boolean modusPasst = regel.getLademodus() == Lademodus.DC;
             boolean datumGueltig = !regel.getGueltigAb().isAfter(ladeEnde);
 
             if (modusPasst && datumGueltig) {
@@ -523,10 +729,9 @@ public class ElectricChargingStationNetwork {
     }
 
     // =====================================================================
-    // Operator Dashboard – verwendet gemeinsame standorte-Liste
+    // Operator Dashboard (bestehend)
     // =====================================================================
     private static void demoOperatorDashboard(List<Standort> standorte) {
-
         System.out.println("=== Demo: Operator Dashboard ===");
 
         Betreiber betreiber = new Betreiber("Admin Operator", "operator@testsystem.com", "AdminPass123");
@@ -598,7 +803,3 @@ public class ElectricChargingStationNetwork {
         System.out.println("\n=== Ende Demo: Operator Dashboard ===");
     }
 }
-
-
-
-
