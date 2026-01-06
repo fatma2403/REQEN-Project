@@ -26,9 +26,14 @@ public class StepDefinitions {
     private Ladestation reservierteLadestation;
     private boolean reservierungAktiv;
 
-    // ------------------------------------------------------------
-    // Gemeinsame Given-Steps
-    // ------------------------------------------------------------
+    // =========================================================
+    // NEU: Flags/Messages für Error/Edge-Cases (View Locations)
+    // =========================================================
+    private boolean noMatchingLocationsShown;
+    private String noMatchingLocationsMessage;
+
+    private boolean reservationRejected;
+    private String stationAlreadyReservedMessage;
 
     @Given("a customer exists")
     public void a_customer_exists() {
@@ -41,10 +46,6 @@ public class StepDefinitions {
         kunde = new Kunde(name, email, "secret");
         kunde.setKundenId("CUST-1023");
     }
-
-    // ------------------------------------------------------------
-    // Standorte mit Ladestationen (für Übersicht & Details) – einfache Testdaten
-    // ------------------------------------------------------------
 
     @Given("there are several locations with charging stations")
     public void there_are_several_locations_with_charging_stations() {
@@ -87,10 +88,6 @@ public class StepDefinitions {
     public void there_are_several_locations_with_ac_and_dc_charging_stations() {
         there_are_several_locations_with_charging_stations();
     }
-
-    // ------------------------------------------------------------
-    // Daten aus Text-Scenario: example.feature (drei Standorte in einem Schritt)
-    // ------------------------------------------------------------
 
     @Given("locations exist: {string} at {string} with chargers \\({int} AC IN_BETRIEB_FREI, {int} DC IN_BETRIEB_BESETZT), {string} at {string} with chargers \\({int} AC IN_BETRIEB_FREI), {string} at {string} with chargers \\({int} DC IN_BETRIEB_FREI)")
     public void locations_exist_three_locations(
@@ -148,10 +145,6 @@ public class StepDefinitions {
         sichtbareStandorte = new ArrayList<>(alleStandorte);
     }
 
-    // ------------------------------------------------------------
-    // View location overview
-    // ------------------------------------------------------------
-
     @When("the customer opens the location overview")
     public void the_customer_opens_the_location_overview() {
         locationOverviewOpen = true;
@@ -182,10 +175,6 @@ public class StepDefinitions {
         assertTrue(names.contains(name2), "Location list should contain " + name2);
         assertTrue(names.contains(name3), "Location list should contain " + name3);
     }
-
-    // ------------------------------------------------------------
-    // View location details (allgemein)
-    // ------------------------------------------------------------
 
     @Given("the customer is on the location overview")
     public void the_customer_is_on_the_location_overview() {
@@ -257,10 +246,6 @@ public class StepDefinitions {
                 "DC charger must be IN_BETRIEB_BESETZT");
     }
 
-    // ------------------------------------------------------------
-    // Filter locations by DC chargers (allgemein)
-    // ------------------------------------------------------------
-
     @When("the customer filters for locations with DC chargers")
     public void the_customer_filters_for_locations_with_dc_chargers() {
         gefilterteStandorte = standortService.standorteMitDcFiltern(alleStandorte);
@@ -296,10 +281,6 @@ public class StepDefinitions {
         assertTrue(names.contains(expected1), "Filtered list should contain " + expected1);
         assertTrue(names.contains(expected2), "Filtered list should contain " + expected2);
     }
-
-    // ------------------------------------------------------------
-    // Filter locations by different attributes (view_locations.feature)
-    // ------------------------------------------------------------
 
     @Given("there are several locations with different attributes")
     public void there_are_several_locations_with_different_attributes() {
@@ -349,10 +330,6 @@ public class StepDefinitions {
         }
     }
 
-    // ------------------------------------------------------------
-    // Reserve a charging station (view_locations.feature - einfache Version)
-    // ------------------------------------------------------------
-
     @Given("there is a location with at least one available charging station")
     public void there_is_a_location_with_at_least_one_available_charging_station() {
         alleStandorte = new ArrayList<>();
@@ -396,10 +373,6 @@ public class StepDefinitions {
                 reservierteLadestation.getBetriebszustand(),
                 "Reserved station should not be available for others");
     }
-
-    // ------------------------------------------------------------
-    // view_locations.feature – DataTable-Varianten
-    // ------------------------------------------------------------
 
     @Given("the following locations with charging stations exist:")
     public void the_following_locations_with_charging_stations_exist(DataTable dataTable) {
@@ -499,6 +472,14 @@ public class StepDefinitions {
                 .filter(s -> s.getLadestationen().stream()
                         .anyMatch(l -> l.getLademodus() == mode))
                 .collect(Collectors.toList());
+
+        // Reset/Set für Error Case
+        noMatchingLocationsShown = gefilterteStandorte.isEmpty();
+        if (noMatchingLocationsShown) {
+            noMatchingLocationsMessage = "NO_MATCHING_LOCATIONS";
+        } else {
+            noMatchingLocationsMessage = null;
+        }
     }
 
     @Then("the system shows only locations including {string}")
@@ -514,6 +495,22 @@ public class StepDefinitions {
                 "Exactly one location should match the filter");
         assertTrue(names.contains(expectedName),
                 "Filtered list should contain " + expectedName);
+    }
+
+    // =========================================================
+    // NEU: Error Case Steps (Filter -> keine Treffer)
+    // =========================================================
+    @Then("the system shows no locations")
+    public void the_system_shows_no_locations() {
+        assertNotNull(gefilterteStandorte, "Filtered locations should not be null");
+        assertTrue(gefilterteStandorte.isEmpty(), "Filtered locations should be empty");
+        assertTrue(noMatchingLocationsShown, "No matching locations state should be shown");
+    }
+
+    @Then("the system shows a no matching locations message")
+    public void the_system_shows_a_no_matching_locations_message() {
+        assertTrue(noMatchingLocationsShown, "No matching locations state should be shown");
+        assertEquals("NO_MATCHING_LOCATIONS", noMatchingLocationsMessage);
     }
 
     @Given("location {string} has a free charging station with LadestationID {int}")
@@ -535,6 +532,41 @@ public class StepDefinitions {
 
         alleStandorte.add(s);
         ausgewaehlterStandort = s;
+
+        // Reset
+        reservationRejected = false;
+        stationAlreadyReservedMessage = null;
+    }
+
+    // =========================================================
+    // NEU: Edge Case Setup (Station schon reserviert)
+    // =========================================================
+    @Given("location {string} has a charging station with LadestationID {int} reserved for another customer")
+    public void location_has_a_charging_station_with_ladestation_id_reserved_for_another_customer(
+            String name, Integer ladestationId
+    ) {
+        alleStandorte = new ArrayList<>();
+
+        Standort s = new Standort();
+        s.setStandortId(1);
+        s.setName(name);
+        s.setAdresse("dummy");
+
+        // Station ist bereits "belegt" (= reserviert)
+        reservierteLadestation = new Ladestation(
+                ladestationId,
+                Lademodus.AC,
+                Betriebszustand.IN_BETRIEB_BESETZT
+        );
+        s.getLadestationen().add(reservierteLadestation);
+
+        alleStandorte.add(s);
+        ausgewaehlterStandort = s;
+
+        // Reset
+        reservierungAktiv = false;
+        reservationRejected = false;
+        stationAlreadyReservedMessage = null;
     }
 
     @Given("the customer is viewing the location details of {string}")
@@ -551,12 +583,20 @@ public class StepDefinitions {
         assertNotNull(reservierteLadestation, "Reserved charger must exist");
         assertEquals(expectedId.intValue(), reservierteLadestation.getLadestationId(),
                 "Wrong charger reserved");
-        assertEquals(Betriebszustand.IN_BETRIEB_FREI, reservierteLadestation.getBetriebszustand(),
-                "Charger should initially be free");
 
-        // "Reservierung" simulieren
+        // Edge Case: Schon reserviert -> ablehnen
+        if (reservierteLadestation.getBetriebszustand() != Betriebszustand.IN_BETRIEB_FREI) {
+            reservationRejected = true;
+            stationAlreadyReservedMessage = "STATION_ALREADY_RESERVED";
+            reservierungAktiv = false;
+            return;
+        }
+
+        // Happy Path: "Reservierung" simulieren
         reservierteLadestation.setBetriebszustand(Betriebszustand.IN_BETRIEB_BESETZT);
         reservierungAktiv = true;
+        reservationRejected = false;
+        stationAlreadyReservedMessage = null;
     }
 
     @Then("the system sets the charging station with LadestationID {int} as reserved for customer {string}")
@@ -564,7 +604,9 @@ public class StepDefinitions {
             Integer expectedId, String email) {
 
         assertTrue(reservierungAktiv, "Reservation should be active");
+        assertFalse(reservationRejected, "Reservation should not be rejected");
         assertNotNull(reservierteLadestation, "Reserved charger must exist");
+
         assertEquals(expectedId.intValue(), reservierteLadestation.getLadestationId(),
                 "Reserved charger has wrong id");
         assertEquals(Betriebszustand.IN_BETRIEB_BESETZT,
@@ -580,5 +622,24 @@ public class StepDefinitions {
                 reservierteLadestation.getBetriebszustand(),
                 "Station must not be available for other customers");
     }
-}
 
+    // =========================================================
+    // NEU: Edge Case Then-Steps
+    // =========================================================
+    @Then("the system rejects the reservation for charging station with LadestationID {int}")
+    public void the_system_rejects_the_reservation_for_charging_station_with_ladestation_id(Integer id) {
+        assertTrue(reservationRejected, "Reservation should be rejected");
+        assertFalse(reservierungAktiv, "Reservation must not be active");
+        assertNotNull(reservierteLadestation, "Station must exist");
+        assertEquals(id.intValue(), reservierteLadestation.getLadestationId());
+        // Station bleibt belegt/reserviert
+        assertEquals(Betriebszustand.IN_BETRIEB_BESETZT, reservierteLadestation.getBetriebszustand(),
+                "Station should remain reserved/occupied");
+    }
+
+    @Then("the system shows a station already reserved message")
+    public void the_system_shows_a_station_already_reserved_message() {
+        assertTrue(reservationRejected, "Reservation should be rejected");
+        assertEquals("STATION_ALREADY_RESERVED", stationAlreadyReservedMessage);
+    }
+}
