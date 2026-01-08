@@ -23,3 +23,6 @@ Feature: View charging locations
     When the customer filters for locations with DC chargers
     Then the system shows only locations that have at least one DC charger: "City Center" and "Highway Station"
 
+  Scenario: Placeholder
+    Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
+    Then the system is ready

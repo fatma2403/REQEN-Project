@@ -23,3 +23,8 @@ Feature: Manage customer data
     Given multiple customers exist: "Martin Keller" with email "martin.keller@testmail.com", "Laura Fischer" with email "laura.fischer@testmail.com", "Jonas Weber" with email "jonas.weber@testmail.com"
     When the operator applies the filter "Keller" to the customer list
     Then the system shows only customers with name containing "Keller"
+
+  Scenario: Reject invalid email update
+    Given a customer exists with stored data: name "Martin Keller" and email "martin.keller@testmail.com"
+    When the operator updates the customer email to "invalid-email" and saves the changes
+    Then the system rejects the email update

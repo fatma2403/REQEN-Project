@@ -33,3 +33,8 @@ Feature: Manage invoices
     Given a list of invoices "1001" and "1002" is displayed in the invoice overview
     When the operator exports the invoices
     Then the system provides the invoices in a downloadable file "invoices_2025-11_export.csv"
+
+  Scenario: No invoices available
+    Given a logged-in customer with name "Martin Keller" and email "martin.keller@testmail.com"
+    When the customer opens the invoice list
+    Then the system shows no invoices message
