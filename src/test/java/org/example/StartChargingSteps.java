@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class StartChargingSteps {
 
-
     static class Customer {
         String name;
         String email;
@@ -36,8 +35,6 @@ public class StartChargingSteps {
         double energyKWh;
     }
 
-
-
     private Customer currentCustomer;
     private ChargingStation currentStation;
     private ChargingSession currentSession;
@@ -48,7 +45,18 @@ public class StartChargingSteps {
     private String lastNotificationSessionId;
     private double lastNotificationEnergyKWh;
 
- 
+    // =========================================================
+    // NEU: Support für Error/Edge-Cases
+    // =========================================================
+    private boolean customerIdRejected;
+    private boolean chargingModeRejected;
+    private boolean sessionCreated;
+    private String customerIdErrorMessage;
+    private String chargingModeErrorMessage;
+
+    private String supportedMode1;
+    private String supportedMode2;
+
     @Given("a charging station with id {string} at location {string} in mode {string} and status {string} is ready for use")
     public void a_charging_station_with_id_at_location_in_mode_and_status_is_ready_for_use(
             String stationId,
@@ -64,7 +72,16 @@ public class StartChargingSteps {
         currentStation.configured = false;
         currentStation.deliveringEnergy = false;
 
-        // Sanity-Checks gegen das Feature
+        // Reset Error/Edge flags
+        customerIdRejected = false;
+        chargingModeRejected = false;
+        sessionCreated = false;
+        customerIdErrorMessage = null;
+        chargingModeErrorMessage = null;
+        selectedChargingMode = null;
+        currentSession = null;
+
+        // Sanity-Checks gegen das Feature (bleibt wie gehabt)
         assertEquals("11", stationId);
         assertEquals("City Center", location);
         assertEquals("DC", mode);
@@ -84,6 +101,13 @@ public class StartChargingSteps {
         currentCustomer.identified = true;
         currentCustomer.validated = false;
 
+        // Reset (pro Kunde)
+        customerIdRejected = false;
+        customerIdErrorMessage = null;
+        sessionCreated = false;
+        currentSession = null;
+
+        // Sanity-Checks gegen das Feature (bleibt wie gehabt)
         assertEquals("Martin Keller", name);
         assertEquals("martin.keller@testmail.com", email);
         assertEquals("CUST-1023", customerId);
@@ -94,9 +118,21 @@ public class StartChargingSteps {
         assertNotNull(currentCustomer, "Customer should be identified");
         assertTrue(currentCustomer.identified, "Customer should be identified");
 
-        // Im echten System würde man hier prüfen, ob die ID existiert
-        assertEquals(currentCustomer.customerId, enteredId);
-        currentCustomer.validated = true;
+        // Happy-Path: ID passt -> validiert
+        if (enteredId != null && enteredId.equals(currentCustomer.customerId)) {
+            currentCustomer.validated = true;
+            customerIdRejected = false;
+            customerIdErrorMessage = null;
+            return;
+        }
+
+        // Error-Case: unbekannte/abweichende ID -> ablehnen
+        currentCustomer.validated = false;
+        customerIdRejected = true;
+        customerIdErrorMessage = "CUSTOMER_ID_ERROR";
+        // Keine Session anlegen!
+        currentSession = null;
+        sessionCreated = false;
     }
 
     @Then("the system validates that customer ID {string} exists")
@@ -104,6 +140,7 @@ public class StartChargingSteps {
         assertNotNull(currentCustomer, "Customer should exist");
         assertTrue(currentCustomer.validated, "Customer should be validated");
         assertEquals(expectedId, currentCustomer.customerId);
+        assertFalse(customerIdRejected, "Customer ID should not be rejected in happy path");
     }
 
     @Then("the system links the new charging session to the customer account with customer ID {string}")
@@ -116,8 +153,39 @@ public class StartChargingSteps {
         currentSession.sessionId = "NEW_SESSION";
         currentSession.customer = currentCustomer;
         currentSession.station = currentStation;
+
+        sessionCreated = true;
     }
 
+    // =========================================================
+    // NEU: Steps für Error-Case "Unknown customer ID"
+    // =========================================================
+
+    @Then("the system rejects customer ID {string}")
+    public void the_system_rejects_customer_id(String rejectedId) {
+        assertTrue(customerIdRejected, "Customer ID should be rejected");
+        assertFalse(currentCustomer.validated, "Customer must not be validated");
+        assertNotNull(customerIdErrorMessage, "Error message should be set");
+        assertEquals("CUSTOMER_ID_ERROR", customerIdErrorMessage);
+        // Optional: rejectedId wird im Feature übergeben (z.B. "UNKNOWN")
+        assertNotNull(rejectedId);
+    }
+
+    @Then("the system does not create a new charging session")
+    public void the_system_does_not_create_a_new_charging_session() {
+        assertFalse(sessionCreated, "No session should be created");
+        assertNull(currentSession, "Current session must be null");
+    }
+
+    @Then("the system shows a customer ID error message")
+    public void the_system_shows_a_customer_id_error_message() {
+        assertTrue(customerIdRejected, "Customer ID should be rejected");
+        assertEquals("CUSTOMER_ID_ERROR", customerIdErrorMessage);
+    }
+
+    // =========================================================
+    // Select mode
+    // =========================================================
 
     @Given("a validated customer {string} with customer ID {string} is at charging station with id {string} that supports charging modes {string} and {string}")
     public void a_validated_customer_with_customer_id_is_at_charging_station_with_id_that_supports_charging_modes_and(
@@ -136,12 +204,20 @@ public class StartChargingSteps {
         currentStation.id = stationId;
         currentStation.location = "City Center";
         currentStation.status = "IN_BETRIEB_FREI";
-        // Initialer Modus egal, wird gleich konfiguriert
         currentStation.mode = mode1;
         currentStation.configured = false;
         currentStation.deliveringEnergy = false;
 
-        // Nur Sanity-Checks
+        // Supported modes speichern (NEU)
+        supportedMode1 = mode1;
+        supportedMode2 = mode2;
+
+        // Reset mode flags (NEU)
+        chargingModeRejected = false;
+        chargingModeErrorMessage = null;
+        selectedChargingMode = null;
+
+        // Sanity-Checks wie gehabt
         assertEquals("Martin Keller", name);
         assertEquals("CUST-1023", customerId);
         assertEquals("11", stationId);
@@ -155,26 +231,63 @@ public class StartChargingSteps {
         assertTrue(currentCustomer.validated, "Customer should be validated");
         assertNotNull(currentStation, "Station should exist");
 
-        // In einem echten System würden wir prüfen, ob der Modus unterstützt wird
         selectedChargingMode = mode;
+
+        // Edge/Error: Modus nicht unterstützt
+        boolean supported = mode != null && (mode.equals(supportedMode1) || mode.equals(supportedMode2));
+        if (!supported) {
+            chargingModeRejected = true;
+            chargingModeErrorMessage = "CHARGING_MODE_ERROR";
+            // Station bleibt unkonfiguriert
+            currentStation.configured = false;
+            currentStation.configuredMode = null;
+        }
     }
 
     @Then("the system configures charging station {string} with charging mode {string}")
     public void the_system_configures_charging_station_with_charging_mode(String expectedStationId, String expectedMode) {
         assertNotNull(currentStation, "Station should exist");
         assertNotNull(selectedChargingMode, "A charging mode should have been selected");
+        assertFalse(chargingModeRejected, "Charging mode should not be rejected in happy path");
 
         // Station konfigurieren
         currentStation.configured = true;
         currentStation.configuredMode = selectedChargingMode;
         currentStation.mode = selectedChargingMode;
 
-        // Jetzt echte Asserts – hier war vorher dein 0 statt 11 Problem
         assertEquals(expectedStationId, currentStation.id);
         assertEquals(expectedMode, currentStation.configuredMode);
     }
 
-   
+    // =========================================================
+    // NEU: Steps für Error-Case "Unsupported mode"
+    // =========================================================
+
+    @Then("the system rejects charging mode {string}")
+    public void the_system_rejects_charging_mode(String rejectedMode) {
+        assertTrue(chargingModeRejected, "Charging mode should be rejected");
+        assertEquals("CHARGING_MODE_ERROR", chargingModeErrorMessage);
+        assertNotNull(rejectedMode);
+    }
+
+    @Then("the charging station {string} remains unconfigured")
+    public void the_charging_station_remains_unconfigured(String stationId) {
+        assertNotNull(currentStation, "Station should exist");
+        assertEquals(stationId, currentStation.id);
+        assertFalse(currentStation.configured, "Station must remain unconfigured");
+        assertNull(currentStation.configuredMode, "Configured mode must not be set");
+    }
+
+    @Then("the system shows a charging mode error message")
+    public void the_system_shows_a_charging_mode_error_message() {
+        assertTrue(chargingModeRejected, "Charging mode should be rejected");
+        assertEquals("CHARGING_MODE_ERROR", chargingModeErrorMessage);
+    }
+
+    // =========================================================
+    // Start charging session
+    // =========================================================
+
     @Given("a validated customer {string} with customer ID {string} is at charging station with id {string} configured with charging mode {string}")
     public void a_validated_customer_with_customer_id_is_at_charging_station_with_id_configured_with_charging_mode(
             String name,
@@ -232,7 +345,9 @@ public class StartChargingSteps {
         assertEquals(expectedStartTime, currentSession.startTime);
     }
 
-  
+    // =========================================================
+    // Notifications
+    // =========================================================
 
     @Given("an ongoing charging session {string} for customer {string} at charging station {string} started at {string} with recorded energy {string} kWh")
     public void an_ongoing_charging_session_for_customer_at_charging_station_started_at_with_recorded_energy_k_wh(
@@ -302,4 +417,3 @@ public class StartChargingSteps {
         assertEquals(currentSession.energyKWh, lastNotificationEnergyKWh, 0.0001);
     }
 }
-

@@ -59,4 +59,24 @@ public class Ladevorgang {
     public void setLadestation(Ladestation ladestation) {
         this.ladestation = ladestation;
     }
+
+    public double getEnergieKwh() {
+        return 0;
+    }
+
+    public void setKundeEmail(String mail) {
+    }
+
+    public void setEnergieKwh(double v) {
+    }
+
+    public void setLademodus(Lademodus lademodus) {
+    }
+
+    public void setId(String number) {
+    }
+
+    public Object getId() {
+        return null;
+    }
 }

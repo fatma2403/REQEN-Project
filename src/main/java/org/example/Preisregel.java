@@ -60,4 +60,8 @@ public class Preisregel {
     public double berechnePreis(double energieKWh, int dauerMinuten) {
         return energieKWh * preisProKWh + dauerMinuten * preisProMinute;
     }
+
+    public double getPreisProKwh() {
+        return 0;
+    }
 }

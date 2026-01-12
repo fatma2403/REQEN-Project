@@ -8,7 +8,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class StopChargingSteps {
 
-   
+    // --- einfache Modellklassen nur für die Tests ---
+
     static class Customer {
         String name;
         String customerId;
@@ -52,7 +53,7 @@ public class StopChargingSteps {
         boolean generated;
     }
 
- 
+    // --- Zustand über die Szenarien hinweg ---
 
     private Customer currentCustomer;
     private ChargingStation currentStation;
@@ -61,6 +62,18 @@ public class StopChargingSteps {
     private BillingRecord currentBillingRecord;
     private Invoice currentInvoice;
 
+    // =========================================================
+    // NEU: Flags / Messages für Error & Edge Cases
+    // =========================================================
+    private boolean stopRejected;
+    private String stopErrorMessage;
+
+    private boolean alreadyFinishedMessageShown;
+    private String alreadyFinishedMessage;
+
+    // --------------------------------------------------------------------
+    // Scenario: Unplug the charging cable
+    // --------------------------------------------------------------------
 
     @Given("an ongoing charging session {string} for customer {string} with customer ID {string} at charging station {string} started at {string}")
     public void an_ongoing_charging_session_for_customer_with_customer_id_at_charging_station_started_at(
@@ -85,6 +98,12 @@ public class StopChargingSteps {
         currentSession.startTime = startTime;
         currentSession.finished = false;
 
+        // Reset Flags (NEU)
+        stopRejected = false;
+        stopErrorMessage = null;
+        alreadyFinishedMessageShown = false;
+        alreadyFinishedMessage = null;
+
         // Sanity-Checks gegen das Feature
         assertEquals("5001", sessionId);
         assertEquals("Martin Keller", customerName);
@@ -97,6 +116,13 @@ public class StopChargingSteps {
     public void the_customer_unplugs_the_charging_cable_at(String endTime) {
         assertNotNull(currentSession, "Session must exist");
         assertNotNull(currentStation, "Station must exist");
+
+        // Edge: Wenn schon finished, dann NICHT überschreiben
+        if (currentSession.finished) {
+            alreadyFinishedMessageShown = true;
+            alreadyFinishedMessage = "CHARGING_SESSION_ALREADY_FINISHED";
+            return;
+        }
 
         currentSession.endTime = endTime;
         currentSession.finished = true;
@@ -113,8 +139,119 @@ public class StopChargingSteps {
         assertTrue(currentSession.finished, "Session should be finished");
         assertEquals(expectedEndTime, currentSession.endTime);
         assertFalse(currentStation.sessionRunning, "Station should no longer have a running session");
+
+        // Sicherstellen, dass das nicht der Error-Flow war
+        assertFalse(stopRejected, "Stop must not be rejected in happy path");
     }
 
+    // --------------------------------------------------------------------
+    // NEU: Error Case – Session unknown
+    // --------------------------------------------------------------------
+
+    @When("the customer unplugs the charging cable for session {string} at {string}")
+    public void the_customer_unplugs_the_charging_cable_for_session_at(String sessionIdToStop, String endTime) {
+        assertNotNull(currentSession, "A known session should exist in test context");
+
+        // Wenn andere Session-ID -> ablehnen
+        if (!currentSession.sessionId.equals(sessionIdToStop)) {
+            stopRejected = true;
+            stopErrorMessage = "STOP_CHARGING_ERROR";
+            return;
+        }
+
+        // sonst normal stoppen
+        the_customer_unplugs_the_charging_cable_at(endTime);
+    }
+
+    @Then("the system rejects stopping session {string}")
+    public void the_system_rejects_stopping_session(String sessionId) {
+        assertTrue(stopRejected, "Stopping should be rejected");
+        assertNotNull(stopErrorMessage, "Stop error message should be set");
+        assertEquals("STOP_CHARGING_ERROR", stopErrorMessage);
+        assertNotNull(sessionId);
+
+        // Session darf NICHT verändert werden
+        assertNotNull(currentSession, "Session must exist in context");
+        assertFalse(currentSession.finished, "Known session must still be ongoing");
+        assertTrue(currentStation.sessionRunning, "Station should still have running session");
+    }
+
+    @Then("the system shows a stop charging error message")
+    public void the_system_shows_a_stop_charging_error_message() {
+        assertTrue(stopRejected, "Stopping should be rejected");
+        assertEquals("STOP_CHARGING_ERROR", stopErrorMessage);
+    }
+
+    // --------------------------------------------------------------------
+    // NEU: Edge Case – Session already finished
+    // --------------------------------------------------------------------
+
+    @Given("a finished charging session {string} for customer {string} with customer ID {string} ended at {string}")
+    public void a_finished_charging_session_for_customer_with_customer_id_ended_at(
+            String sessionId,
+            String customerName,
+            String customerId,
+            String endedAt
+    ) {
+        currentCustomer = new Customer();
+        currentCustomer.name = customerName;
+        currentCustomer.customerId = customerId;
+
+        currentStation = new ChargingStation();
+        currentStation.id = "11";
+        currentStation.sessionRunning = false;
+
+        currentSession = new ChargingSession();
+        currentSession.sessionId = sessionId;
+        currentSession.customer = currentCustomer;
+        currentSession.station = currentStation;
+        currentSession.startTime = "2025-11-20T10:00"; // nicht relevant für diesen Edge Case
+        currentSession.endTime = endedAt;
+        currentSession.finished = true;
+
+        // Reset Flags
+        stopRejected = false;
+        stopErrorMessage = null;
+        alreadyFinishedMessageShown = false;
+        alreadyFinishedMessage = null;
+
+        assertEquals("5001", sessionId);
+        assertEquals("Martin Keller", customerName);
+        assertEquals("CUST-1023", customerId);
+        assertEquals("2025-11-20T10:30", endedAt);
+    }
+
+    @When("the customer unplugs the charging cable again")
+    public void the_customer_unplugs_the_charging_cable_again() {
+        assertNotNull(currentSession, "Session must exist");
+        assertTrue(currentSession.finished, "Session must already be finished");
+        assertNotNull(currentStation, "Station must exist");
+
+        // nichts ändern, nur Message setzen
+        alreadyFinishedMessageShown = true;
+        alreadyFinishedMessage = "CHARGING_SESSION_ALREADY_FINISHED";
+    }
+
+    @Then("the system keeps the charging session {string} unchanged")
+    public void the_system_keeps_the_charging_session_unchanged(String sessionId) {
+        assertNotNull(currentSession, "Session must exist");
+        assertEquals(sessionId, currentSession.sessionId);
+
+        // Unchanged bedeutet: endTime bleibt wie gesetzt + finished bleibt true
+        assertTrue(currentSession.finished, "Session must remain finished");
+        assertNotNull(currentSession.endTime, "End time must remain set");
+        assertFalse(currentStation.sessionRunning, "Station must remain not running");
+    }
+
+    @Then("the system shows a charging session already finished message")
+    public void the_system_shows_a_charging_session_already_finished_message() {
+        assertTrue(alreadyFinishedMessageShown, "Already finished message should be shown");
+        assertEquals("CHARGING_SESSION_ALREADY_FINISHED", alreadyFinishedMessage);
+    }
+
+    // --------------------------------------------------------------------
+    // Scenario: Automatic billing after charging
+    // --------------------------------------------------------------------
 
     @Given("a finished charging session {string} for customer {string} with customer ID {string} from {string} to {string} with measured energy {string} kWh")
     public void a_finished_charging_session_for_customer_with_customer_id_from_to_with_measured_energy_k_wh(
@@ -175,7 +312,6 @@ public class StopChargingSteps {
         assertNotNull(currentPricingRule, "Pricing rule must exist");
         assertEquals(sessionId, currentSession.sessionId);
 
-        // Dauer in Minuten aus Start/Ende "2025-11-20T10:00" -> "2025-11-20T10:30"
         // Für dieses Beispiel wissen wir: 30 Minuten
         long minutes = 30L;
 
@@ -201,7 +337,9 @@ public class StopChargingSteps {
         assertEquals(expected, currentBillingRecord.totalAmount, 0.01);
     }
 
-
+    // --------------------------------------------------------------------
+    // Scenario: Customer receives an invoice
+    // --------------------------------------------------------------------
 
     @Given("the system has created a billing record for session {string} with invoice number {string} and total amount {string} for customer ID {string}")
     public void the_system_has_created_a_billing_record_for_session_with_invoice_number_and_total_amount_for_customer_id(
@@ -210,28 +348,22 @@ public class StopChargingSteps {
             String totalAmount,
             String customerId
     ) {
-        // BillingRecord rekonstruieren (oder aus vorherigen Szenarien "simulieren")
         currentBillingRecord = new BillingRecord();
         currentBillingRecord.sessionId = sessionId;
         currentBillingRecord.customerId = customerId;
         currentBillingRecord.totalAmount = Double.parseDouble(totalAmount);
 
-        // Kunde ist in diesem Schritt im Feature nicht benannt,
-        // aber die folgende Then-Assertion erwartet "Martin Keller".
-        // Also legen wir den Kunden hier passend an.
         currentCustomer = new Customer();
         currentCustomer.customerId = customerId;
         if ("CUST-1023".equals(customerId)) {
             currentCustomer.name = "Martin Keller";
         }
 
-        // Invoice anlegen, aber noch nicht "generated"
         currentInvoice = new Invoice();
         currentInvoice.invoiceNumber = invoiceNumber;
         currentInvoice.sessionId = sessionId;
         currentInvoice.customerId = customerId;
         currentInvoice.totalAmount = Double.parseDouble(totalAmount);
-        // den Namen gleich auch setzen, damit der View-Use-Case funktioniert
         currentInvoice.customerName = currentCustomer.name;
         currentInvoice.generated = false;
 
@@ -257,8 +389,6 @@ public class StopChargingSteps {
         assertNotNull(currentInvoice, "Invoice must exist");
         assertTrue(currentInvoice.generated, "Invoice should be generated");
 
-        // Hier war dein Fehler: customerName war null.
-        // Wir stellen oben im Given sicher, dass er gesetzt wird.
         assertEquals(expectedCustomerName, currentInvoice.customerName);
         assertEquals(expectedInvoiceNumber, currentInvoice.invoiceNumber);
         assertEquals(expectedSessionId, currentInvoice.sessionId);
@@ -267,4 +397,3 @@ public class StopChargingSteps {
         assertEquals(expectedTotal, currentInvoice.totalAmount, 0.01);
     }
 }
-

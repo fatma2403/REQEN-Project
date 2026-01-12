@@ -51,33 +51,28 @@ public class ManagePaymentsSteps {
     private final List<ChargingSessionEntry> chargingSessions = new ArrayList<>();
     private boolean chargingHistoryOpened;
 
-    // NEW: error handling for edge case
-    private String lastPaymentsErrorMessage;
+    // Neu für Edge/Error-Cases
+    private boolean invoiceAccessDenied;
+    private boolean invoiceEmptyStateShown;
+    private String invoiceErrorMessage;
 
     @Given("a logged-in customer with name {string}, email {string} and customer ID {string}")
-    public void a_logged_in_customer_with_name_email_and_customer_id(
-            String name,
-            String email,
-            String custId
-    ) {
+    public void a_logged_in_customer_with_name_email_and_customer_id(String name, String email, String custId) {
         this.customerName = name;
         this.customerEmail = email;
         this.customerId = custId;
 
-        // reset state
-        this.invoiceOverviewOpened = false;
-        this.chargingHistoryOpened = false;
-        this.lastPaymentsErrorMessage = null;
+        // Sanity-Checks (nicht mehr hart auf CUST-1023, damit Error-Case "UNKNOWN" möglich ist)
+        assertNotNull(name);
+        assertFalse(name.trim().isEmpty(), "Customer name must not be empty");
 
-        // Sanity-Checks (du kannst sie später entfernen, wenn du flexibler werden willst)
-        assertEquals("Martin Keller", name);
-        assertEquals("martin.keller@testmail.com", email);
-        assertEquals("CUST-1023", custId);
+        assertNotNull(email);
+        assertFalse(email.trim().isEmpty(), "Customer email must not be empty");
+
+        assertNotNull(custId);
+        assertFalse(custId.trim().isEmpty(), "Customer ID must not be empty");
     }
 
-    // ---------------------------------------------------------------------
-    // Scenario: View invoices (normal)
-    // ---------------------------------------------------------------------
     @Given("past invoices exist for this customer: invoice {string} dated {string} with total amount {string} and invoice {string} dated {string} with total amount {string}")
     public void past_invoices_exist_for_this_customer_invoice_dated_with_total_amount_and_invoice_dated_with_total_amount(
             String inv1Number,
@@ -91,34 +86,37 @@ public class ManagePaymentsSteps {
         invoiceList.add(new InvoiceEntry(inv1Number, inv1Date, inv1Amount, customerEmail));
         invoiceList.add(new InvoiceEntry(inv2Number, inv2Date, inv2Amount, customerEmail));
 
-        // Sanity-Checks gegen die Feature-Werte
-        assertEquals("1001", inv1Number);
-        assertEquals("2025-11-20", inv1Date);
-        assertEquals("13.80", inv1Amount);
-
-        assertEquals("1002", inv2Number);
-        assertEquals("2025-11-10", inv2Date);
-        assertEquals("9.50", inv2Amount);
+        // (Optional) leichte Plausibilität statt harter Feature-Fixierung
+        assertNotNull(inv1Number);
+        assertNotNull(inv2Number);
+        assertNotEquals(inv1Number, inv2Number, "Invoice numbers should be different");
     }
 
-    // ---------------------------------------------------------------------
-    // Edge Case: no invoices exist
-    // ---------------------------------------------------------------------
+    // ✅ Neu: Edge Case "keine Rechnungen"
     @Given("no past invoices exist for this customer")
     public void no_past_invoices_exist_for_this_customer() {
         invoiceList.clear();
-        lastPaymentsErrorMessage = null;
     }
 
     @When("the customer opens the invoice overview")
     public void the_customer_opens_the_invoice_overview() {
         invoiceOverviewOpened = true;
 
-        // Edge case behavior: set error if list empty
+        // Reset pro Öffnen
+        invoiceAccessDenied = false;
+        invoiceEmptyStateShown = false;
+        invoiceErrorMessage = null;
+
+        // Error-Case: unbekannte/ungültige Customer ID
+        if ("UNKNOWN".equalsIgnoreCase(customerId)) {
+            invoiceAccessDenied = true;
+            invoiceErrorMessage = "INVOICE_ACCESS_ERROR";
+            return;
+        }
+
+        // Edge-Case: keine Rechnungen vorhanden
         if (invoiceList.isEmpty()) {
-            lastPaymentsErrorMessage = "No invoices found for customer ID " + customerId;
-        } else {
-            lastPaymentsErrorMessage = null;
+            invoiceEmptyStateShown = true;
         }
     }
 
@@ -129,37 +127,43 @@ public class ManagePaymentsSteps {
             String expectedCustomerId
     ) {
         assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
-        assertEquals(expectedCustomerId, this.customerId,
-                "Customer ID should match the logged-in customer");
+        assertFalse(invoiceAccessDenied, "Invoice overview should not be denied for valid customer");
+        assertEquals(expectedCustomerId, this.customerId, "Customer ID should match the logged-in customer");
+        assertFalse(invoiceList.isEmpty(), "Invoice list should not be empty");
 
-        // Prüfen, dass beide Rechnungsnummern in der Liste vorkommen
-        boolean foundInv1 = invoiceList.stream()
-                .anyMatch(inv -> inv.number.equals(expectedInv1));
-        boolean foundInv2 = invoiceList.stream()
-                .anyMatch(inv -> inv.number.equals(expectedInv2));
+        boolean foundInv1 = invoiceList.stream().anyMatch(inv -> inv.number.equals(expectedInv1));
+        boolean foundInv2 = invoiceList.stream().anyMatch(inv -> inv.number.equals(expectedInv2));
 
         assertTrue(foundInv1, "Invoice " + expectedInv1 + " should be in the list");
         assertTrue(foundInv2, "Invoice " + expectedInv2 + " should be in the list");
     }
 
-    // NEW Then for edge case
+    // ✅ Neu: Then-Step für „keine Rechnungen“
     @Then("the system shows no invoices for customer ID {string}")
     public void the_system_shows_no_invoices_for_customer_id(String expectedCustomerId) {
         assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
+        assertFalse(invoiceAccessDenied, "Access must not be denied in empty-state scenario");
         assertEquals(expectedCustomerId, this.customerId, "Customer ID should match");
-        assertTrue(invoiceList.isEmpty(), "Invoice list should be empty for this edge case");
+        assertTrue(invoiceList.isEmpty(), "Invoice list should be empty");
+        assertTrue(invoiceEmptyStateShown, "Empty state should be shown");
     }
 
-    // NEW Then for edge case (avoid duplicate generic step names)
-    @Then("the system shows the payments error message {string}")
-    public void the_system_shows_the_payments_error_message(String expectedMessage) {
-        assertNotNull(lastPaymentsErrorMessage, "Payments error message should be set");
-        assertEquals(expectedMessage, lastPaymentsErrorMessage);
+    // ✅ Neu: Empty Message
+    @Then("the system shows an invoice empty message")
+    public void the_system_shows_an_invoice_empty_message() {
+        assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
+        assertTrue(invoiceEmptyStateShown, "Invoice empty message should be shown");
+        assertNull(invoiceErrorMessage, "No error message expected when empty state is shown");
     }
 
-    // ---------------------------------------------------------------------
-    // Scenario: View charging history (normal)
-    // ---------------------------------------------------------------------
+    // ✅ Neu: Zugriff/Fehlerfall
+    @Then("the system shows an invoice access error message")
+    public void the_system_shows_an_invoice_access_error_message() {
+        assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
+        assertTrue(invoiceAccessDenied, "Access should be denied for unknown customer");
+        assertEquals("INVOICE_ACCESS_ERROR", invoiceErrorMessage, "Expected invoice access error message");
+    }
+
     @Given("past charging sessions exist for this customer: session {string} from {string} to {string} with energy {string} kWh at location {string} and session {string} from {string} to {string} with energy {string} kWh at location {string}")
     public void past_charging_sessions_exist_for_this_customer_session_from_to_with_energy_k_wh_at_location_and_session_from_to_with_energy_k_wh_at_location(
             String session1Id,
@@ -174,23 +178,11 @@ public class ManagePaymentsSteps {
             String session2Location
     ) {
         chargingSessions.clear();
-        chargingSessions.add(new ChargingSessionEntry(
-                session1Id, session1Start, session1End, session1Energy, session1Location));
-        chargingSessions.add(new ChargingSessionEntry(
-                session2Id, session2Start, session2End, session2Energy, session2Location));
+        chargingSessions.add(new ChargingSessionEntry(session1Id, session1Start, session1End, session1Energy, session1Location));
+        chargingSessions.add(new ChargingSessionEntry(session2Id, session2Start, session2End, session2Energy, session2Location));
 
-        // Sanity-Checks mit den konkreten Werten aus dem Feature
-        assertEquals("5001", session1Id);
-        assertEquals("2025-11-20T10:00", session1Start);
-        assertEquals("2025-11-20T10:30", session1End);
-        assertEquals("24.0", session1Energy);
-        assertEquals("City Center", session1Location);
-
-        assertEquals("5002", session2Id);
-        assertEquals("2025-11-18T18:15", session2Start);
-        assertEquals("2025-11-18T18:45", session2End);
-        assertEquals("18.0", session2Energy);
-        assertEquals("Mall Parking", session2Location);
+        // Sanity-Checks: nur plausibel
+        assertNotEquals(session1Id, session2Id, "Session IDs should be different");
     }
 
     @When("the customer opens the charging history")
@@ -213,28 +205,19 @@ public class ManagePaymentsSteps {
     ) {
         assertTrue(chargingHistoryOpened, "Charging history should be opened");
 
-        // Session 1 überprüfen
-        ChargingSessionEntry s1 = chargingSessions.stream()
-                .filter(s -> s.sessionId.equals(session1Id))
-                .findFirst()
-                .orElse(null);
-
+        ChargingSessionEntry s1 = chargingSessions.stream().filter(s -> s.sessionId.equals(session1Id)).findFirst().orElse(null);
         assertNotNull(s1, "Session " + session1Id + " should exist in history");
-        assertEquals(session1Start, s1.start, "Start time of session " + session1Id + " should match");
-        assertEquals(session1End, s1.end, "End time of session " + session1Id + " should match");
-        assertEquals(session1Energy, s1.energyKWh, "Energy of session " + session1Id + " should match");
-        assertEquals(session1Location, s1.location, "Location of session " + session1Id + " should match");
+        assertEquals(session1Start, s1.start);
+        assertEquals(session1End, s1.end);
+        assertEquals(session1Energy, s1.energyKWh);
+        assertEquals(session1Location, s1.location);
 
-        // Session 2 überprüfen
-        ChargingSessionEntry s2 = chargingSessions.stream()
-                .filter(s -> s.sessionId.equals(session2Id))
-                .findFirst()
-                .orElse(null);
-
+        ChargingSessionEntry s2 = chargingSessions.stream().filter(s -> s.sessionId.equals(session2Id)).findFirst().orElse(null);
         assertNotNull(s2, "Session " + session2Id + " should exist in history");
-        assertEquals(session2Start, s2.start, "Start time of session " + session2Id + " should match");
-        assertEquals(session2End, s2.end, "End time of session " + session2Id + " should match");
-        assertEquals(session2Energy, s2.energyKWh, "Energy of session " + session2Id + " should match");
-        assertEquals(session2Location, s2.location, "Location of session " + session2Id + " should match");
+        assertEquals(session2Start, s2.start);
+        assertEquals(session2End, s2.end);
+        assertEquals(session2Energy, s2.energyKWh);
+        assertEquals(session2Location, s2.location);
     }
 }
+

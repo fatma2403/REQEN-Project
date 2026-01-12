@@ -16,3 +16,10 @@ Feature: Top up balance
     Then the system stores "CREDIT_CARD" as the default payment method
     And future top-ups for "martin.keller@testmail.com" use "CREDIT_CARD" by default
 
+  Scenario: Reject top-up with negative amount
+    Given a logged-in customer with name "Martin Keller", email "martin.keller@testmail.com" and a balance account with current balance 25.00 EUR
+    When the customer selects the prepaid top-up option
+    And the customer enters the amount -10.00 EUR
+    And the payment is confirmed
+    Then the top up is rejected
+    And the system keeps the customer balance at 25.00 EUR
