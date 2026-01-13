@@ -415,6 +415,27 @@ public class ElectricChargingStationNetwork {
                     + " Status=" + ls.getBetriebszustand());
         }
 
+        System.out.println("\n-- Scenario: Remove a location that does not exist --");
+
+        int nonExistentId = 99;
+        System.out.println("Betreiber versucht Standort mit ID " + nonExistentId + " zu entfernen.");
+
+        int countBefore = standorte.size();
+        boolean removed = standorte.removeIf(s -> s.getStandortId() == nonExistentId);
+
+        if (!removed) {
+            System.out.println("System lehnt Löschung ab.");
+            System.out.println("Fehlermeldung: Location with id " + nonExistentId + " was not found");
+        } else {
+            System.out.println("Standort wurde unerwartet gelöscht.");
+        }
+
+        if (standorte.size() == countBefore) {
+            System.out.println("Liste der aktiven Standorte bleibt unverändert (" + countBefore + " Standorte).");
+        } else {
+            System.out.println("Liste der aktiven Standorte hat sich geändert!");
+        }
+
         System.out.println("\n=== Ende Demo: Manage locations ===");
     }
 

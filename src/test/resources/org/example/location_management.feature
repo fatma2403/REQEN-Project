@@ -24,3 +24,10 @@ Feature: Manage locations
     And a location with id "3", name "Highway Station" and address "Autobahn A1, Rastplatz West" exists
     When the operator assigns the charging station with id "20" to the location with id "3"
     Then the system links the charging station with id "20" to the location with id "3"
+
+  Scenario: Remove a location that does not exist
+    Given a location with id "2", name "Mall Parking" and address "Einkaufspark 5, 4020 Linz" exists with charging stations
+    When the operator removes the location with id "99"
+    Then the system rejects the removal request
+    And the system shows the location error message "Location with id 99 was not found"
+    And the list of active locations remains unchanged

@@ -18,6 +18,11 @@ public class LocationManagementSteps {
     private List<Standort> aktiveStandorte = new ArrayList<>();
     private Ladestation unassignedStation;
 
+    // Error handling state
+    private boolean removalRejected;
+    private String removalErrorMessage;
+    private int locationsCountBeforeRemoval;
+
     @Given("a location with id {string}, name {string} and address {string} exists with a charging station with id {string}, mode {string} and status {string}")
     public void a_location_with_id_name_and_address_exists_with_a_charging_station_with_id_mode_and_status(
             String standortIdStr,
@@ -173,7 +178,17 @@ public class LocationManagementSteps {
     @When("the operator removes the location with id {string}")
     public void the_operator_removes_the_location_with_id(String standortIdStr) {
         int idToRemove = Integer.parseInt(standortIdStr);
-        aktiveStandorte.removeIf(s -> s.getStandortId() == idToRemove);
+        locationsCountBeforeRemoval = aktiveStandorte.size();
+        
+        boolean removed = aktiveStandorte.removeIf(s -> s.getStandortId() == idToRemove);
+        
+        if (!removed) {
+            removalRejected = true;
+            removalErrorMessage = "Location with id " + idToRemove + " was not found";
+        } else {
+            removalRejected = false;
+            removalErrorMessage = null;
+        }
     }
 
     @Then("the system no longer shows the location with id {string} in the list of active locations")
@@ -185,6 +200,21 @@ public class LocationManagementSteps {
 
         assertFalse(exists,
                 "Location with id " + id + " should not be in active locations anymore");
+    }
+
+    @Then("the system rejects the removal request")
+    public void the_system_rejects_the_removal_request() {
+        assertTrue(removalRejected, "Removal request should be rejected");
+    }
+
+    @Then("the system shows the location error message {string}")
+    public void the_system_shows_the_error_message(String expectedMessage) {
+        assertEquals(expectedMessage, removalErrorMessage);
+    }
+
+    @Then("the list of active locations remains unchanged")
+    public void the_list_of_active_locations_remains_unchanged() {
+        assertEquals(locationsCountBeforeRemoval, aktiveStandorte.size(), "List size should remain unchanged");
     }
 
    
