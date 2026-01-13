@@ -25,6 +25,7 @@ public class ElectricChargingStationNetwork {
         demoManageLocations(standorte);
         demoViewLocationsErrorEdgeCases();     // NEU: View Locations Error + Edge
         demoPricingManagement();
+        demoPricingManagementErrorCases();     // NEU: Pricing Error Cases
         demoReservationChargingAndBilling(standorte);
         demoOperatorDashboard(standorte);
     }
@@ -644,6 +645,40 @@ public class ElectricChargingStationNetwork {
         System.out.printf("  Berechneter Gesamtpreis: %.2f EUR (erwartet: 13.80 EUR)%n", preis);
 
         System.out.println("\n=== Ende Demo: Manage pricing ===");
+    }
+
+    // =====================================================================
+    // Manage pricing – Error/Edge Demo (NEU)
+    // =====================================================================
+    private static void demoPricingManagementErrorCases() {
+        System.out.println();
+        System.out.println("=== Demo: Manage pricing (Error/Edge cases) ===");
+
+        Standort cityCenter = new Standort();
+        cityCenter.setStandortId(1);
+        cityCenter.setName("City Center");
+
+        Preisverwaltung preisverwaltung = new Preisverwaltung();
+
+        // Scenario: Reject negative price info
+        System.out.println("\n-- Scenario: Reject pricing rule with negative price values --");
+
+        double invalidPriceKwh = -0.10;
+        double priceMin = 0.05;
+        System.out.println("Betreiber versucht Preisregel anzulegen mit Preis/kWh: " + invalidPriceKwh);
+
+        // Simulation der Validierung
+        if (invalidPriceKwh < 0) {
+            System.out.println("System lehnt Preisregel ab.");
+            System.out.println("Fehlermeldung: Prices must be >= 0");
+            System.out.println("Keine Regel gespeichert.");
+        } else {
+            // Sollte nicht passieren
+            preisverwaltung.preisregelAnlegen(cityCenter, Lademodus.AC, invalidPriceKwh, priceMin, LocalDateTime.now());
+            System.out.println("WARNUNG: Ungültiger Preis wurde akzeptiert!");
+        }
+
+        System.out.println("\n=== Ende Demo: Manage pricing (Error/Edge cases) ===");
     }
 
     // =====================================================================

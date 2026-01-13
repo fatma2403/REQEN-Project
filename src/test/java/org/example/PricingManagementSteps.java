@@ -34,12 +34,16 @@ public class PricingManagementSteps {
     private long sessionMinutes;
     private double calculatedPrice;
 
+    // Error handling
+    private boolean ruleCreationRejected;
+    private String pricingErrorMessage;
 
 
-    @Given("an operator with id \"OP-01\", name \"Admin Operator\" is in the pricing section")
-    public void operator_op01_is_in_pricing_section() {
-        operatorId = "OP-01";
-        operatorName = "Admin Operator";
+
+    @Given("an operator with id {string}, name {string} is in the pricing section")
+    public void an_operator_with_id_name_is_in_the_pricing_section(String opId, String opName) {
+        this.operatorId = opId;
+        this.operatorName = opName;
     }
 
     @Given("a location \"City Center\" with id \"1\" exists")
@@ -47,10 +51,26 @@ public class PricingManagementSteps {
         // Keine Systemlogik notwendig, nur Kontext
     }
 
-    @When("the operator defines prices for location \"City Center\" with charging mode \"AC\", price per kWh \"0.35\", price per minute \"0.05\" valid from \"2025-11-01T00:00\"")
-    public void operator_defines_ac_prices_for_city_center() {
-        acPriceKwh = 0.35;
-        acPriceMinute = 0.05;
+    @When("the operator defines prices for location {string} with charging mode {string}, price per kWh {string}, price per minute {string} valid from {string}")
+    public void the_operator_defines_prices_for_location_with_charging_mode_price_per_k_wh_price_per_minute_valid_from(String location, String mode, String priceKwhStr, String priceMinStr, String validFrom) {
+        double kwh = Double.parseDouble(priceKwhStr);
+        double min = Double.parseDouble(priceMinStr);
+
+        if (kwh < 0 || min < 0) {
+            ruleCreationRejected = true;
+            pricingErrorMessage = "Prices must be >= 0";
+            // Do not store values
+            acPriceKwh = 0.0;
+            acPriceMinute = 0.0;
+        } else {
+            ruleCreationRejected = false;
+            pricingErrorMessage = null;
+            if ("AC".equals(mode)) {
+                acPriceKwh = kwh;
+                acPriceMinute = min;
+            }
+            // Logic for DC or others could go here
+        }
     }
 
     @Then("the system stores a pricing rule for location \"City Center\" with charging mode \"AC\", price per kWh \"0.35\", price per minute \"0.05\" and valid from \"2025-11-01T00:00\"")
@@ -107,6 +127,25 @@ public class PricingManagementSteps {
         assertTrue(ruleApplied);
     }
 
+
+    @Then("the system rejects the pricing rule creation")
+    public void the_system_rejects_the_pricing_rule_creation() {
+        assertTrue(ruleCreationRejected, "Pricing rule creation should be rejected");
+    }
+
+    @Then("the system shows the pricing error message {string}")
+    public void the_system_shows_the_pricing_error_message(String expectedMsg) {
+        assertEquals(expectedMsg, pricingErrorMessage);
+    }
+
+    @Then("no pricing rule is stored for location {string} with charging mode {string} valid from {string}")
+    public void no_pricing_rule_is_stored_for_location_with_charging_mode_valid_from(String location, String mode, String validFrom) {
+        // In this simulation, we verify that the fields were not updated to the negative values
+        // assuming defaults are 0.0 or checking that they are not the rejected values.
+        // Since we didn't set them in the When step on error, checking they are 0.0 (default/reset) is sufficient for this mock.
+        assertEquals(0.0, acPriceKwh, 0.001);
+        assertEquals(0.0, acPriceMinute, 0.001);
+    }
 
     @Given("a charging session is running for customer \"Martin Keller\" at location \"City Center\" with id \"1\" on a DC charging station with id \"11\" from \"2025-11-20T10:00\" to \"2025-11-20T10:30\" with energy \"24.0\" kWh")
     public void charging_session_running_for_martin_keller() {

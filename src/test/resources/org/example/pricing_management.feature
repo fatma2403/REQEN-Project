@@ -26,3 +26,10 @@ Feature: Manage pricing
     When the system calculates the price for the session at time "2025-11-20T10:30"
     Then the system uses the pricing rule with price per kWh "0.45" and price per minute "0.10" for location "City Center" and charging mode "DC" and calculates a total price of "13.80"
 
+  Scenario: Reject pricing rule with negative price values
+    Given an operator with id "OP-01", name "Admin Operator" is in the pricing section
+    And a location "City Center" with id "1" exists
+    When the operator defines prices for location "City Center" with charging mode "AC", price per kWh "-0.10", price per minute "0.05" valid from "2025-11-01T00:00"
+    Then the system rejects the pricing rule creation
+    And the system shows the pricing error message "Prices must be >= 0"
+    And no pricing rule is stored for location "City Center" with charging mode "AC" valid from "2025-11-01T00:00"
