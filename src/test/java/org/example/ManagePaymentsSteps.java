@@ -117,6 +117,7 @@ public class ManagePaymentsSteps {
         // Edge-Case: keine Rechnungen vorhanden
         if (invoiceList.isEmpty()) {
             invoiceEmptyStateShown = true;
+            invoiceErrorMessage = "No invoices found for customer ID " + customerId;
         }
     }
 
@@ -162,6 +163,13 @@ public class ManagePaymentsSteps {
         assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
         assertTrue(invoiceAccessDenied, "Access should be denied for unknown customer");
         assertEquals("INVOICE_ACCESS_ERROR", invoiceErrorMessage, "Expected invoice access error message");
+    }
+
+    @Then("the system shows the payments error message {string}")
+    public void the_system_shows_the_payments_error_message(String expectedMessage) {
+        assertTrue(invoiceOverviewOpened, "Invoice overview should be opened");
+        assertNotNull(invoiceErrorMessage, "Error message should be set");
+        assertEquals(expectedMessage, invoiceErrorMessage);
     }
 
     @Given("past charging sessions exist for this customer: session {string} from {string} to {string} with energy {string} kWh at location {string} and session {string} from {string} to {string} with energy {string} kWh at location {string}")

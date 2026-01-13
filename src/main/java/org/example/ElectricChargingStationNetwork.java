@@ -94,6 +94,44 @@ public class ElectricChargingStationNetwork {
         System.out.println("  Email: " + aktualisierterKunde.getEmail());
         System.out.println("  ID:    " + aktualisierterKunde.getKundenId());
 
+        // -----------------------------------------
+// Scenario: Invalid email during registration (edge case)
+// -----------------------------------------
+        System.out.println("\n-- Scenario: Invalid email during registration (edge case) --");
+
+        String invalidEmail = "martin.kellertestmail.com"; // missing @
+        System.out.println("Kunde versucht sich mit ungültiger Email zu registrieren: " + invalidEmail);
+
+        Kunde invalidCustomer = new Kunde("Martin Keller", invalidEmail, "Secure456!");
+        invalidCustomer.setKundenId(null);
+
+        boolean registrationRejected = false;
+        String errorMessage = null;
+
+        try {
+            // this should fail because email is invalid
+            kundenverwaltung.kundeRegistrieren(invalidCustomer);
+
+            // if we get here, it was NOT rejected -> mark as failure in demo output
+            registrationRejected = false;
+        } catch (IllegalArgumentException ex) {
+            registrationRejected = true;
+            errorMessage = ex.getMessage();
+        }
+
+// Output like the feature
+        System.out.println("System lehnt Registrierung ab? " + registrationRejected);
+
+        String expectedMessage = "The entered email is missing an @";
+        System.out.println("Fehlermeldung: " + errorMessage + " (erwartet: " + expectedMessage + ")");
+
+// Optional small safety check for the demo
+        if (!registrationRejected || errorMessage == null || !errorMessage.equals(expectedMessage)) {
+            System.out.println("⚠ Demo-Hinweis: Erwartetes Verhalten wurde NICHT exakt getroffen.");
+        } else {
+            System.out.println("Edge case erfolgreich abgefangen.");
+        }
+
         System.out.println("\n=== Ende Demo: Customer Account ===");
     }
 

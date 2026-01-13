@@ -24,3 +24,9 @@ Feature: Manage customer account
     When the customer changes the email to "martin.keller.new@testmail.com" and saves the changes
     Then the system stores the updated personal data
     And the customer can see the updated information with email "martin.keller.new@testmail.com"
+
+  Scenario: Customer enters an invalid email address during account registration
+    Given a customer without an account with name "Martin Keller" and password "Secure456!"
+    When the customer enters the email "martin.kellertestmail.com" during account registration
+    Then the system rejects the registration
+    And the system shows the error message "The entered email is missing an @"
